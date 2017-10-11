@@ -216,17 +216,18 @@ Window* Window::Create(int _width, int _height, const char* _title)
 	DWORD dwStyle = WS_OVERLAPPEDWINDOW | WS_MINIMIZEBOX | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 
 	if (_width == -1 || _height == -1) {
-	 // auto size; get the dimensions of the primary screen area and subtract the non-client area
+	 // auto size; get the dimensions of the dual screen area and subtract the non-client area
 		RECT r;
 		APT_PLATFORM_VERIFY(SystemParametersInfo(SPI_GETWORKAREA, 0, &r, 0));
-		_width  = r.right - r.left;
-		_height = r.bottom - r.top;
+		_width  = GetSystemMetrics(SM_CXVIRTUALSCREEN) - 20;
+		_height = GetSystemMetrics(SM_CYVIRTUALSCREEN) - 80;
 
 		RECT wr = {};
 		APT_PLATFORM_VERIFY(AdjustWindowRectEx(&wr, dwStyle, FALSE, dwExStyle));
 		_width  -= wr.right - wr.left;
 		_height -= wr.bottom - wr.top;
 	}
+
 	ret->m_width = _width;
 	ret->m_height = _height;
 

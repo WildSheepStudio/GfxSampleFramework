@@ -130,12 +130,12 @@ struct TextureViewer
 	 	static const ImVec4 kColorTxName = ImVec4(1.0f, 0.7f, 0.2f, 1.0f);
 		static const ImVec4 kColorTxInfo = ImVec4(0.8f, 0.8f, 0.8f, 1.0f);
 		static const ImU32  kColorGrid   = ImColor(1.0f, 1.0f, 1.0f, 0.5f);
-		static const float  kThumbHeight = 128.0f;
+		static const float  kThumbHeight = 64.0f;
 		static const float  kZoomSpeed   = 32.0f;
 	
 		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetItemsLineHeightWithSpacing()), ImGuiSetCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2), ImGuiSetCond_FirstUseEver);
-		if (!ImGui::Begin("Texture Viewer", _open_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+		if (!ImGui::Begin("Texture Viewer", _open_, ImGuiWindowFlags_NoScrollWithMouse)) {
 			ImGui::End();
 			return; // window collapsed, early-out
 		}
@@ -167,7 +167,8 @@ struct TextureViewer
 			ImGui::Separator();
 			
 			bool first = true;
-			for (int i = 0; i < (int)m_txViews.size(); ++i) {
+			for (int i = (int)m_txViews.size()-1; i >=0 ; --i) {
+
 				TextureView& txView = m_txViews[i];
 				APT_ASSERT(txView.m_texture != nullptr);
 				Texture& tx = *txView.m_texture;

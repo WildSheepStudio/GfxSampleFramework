@@ -22,6 +22,7 @@
 
 #include <cstring>
 
+
 using namespace frm;
 using namespace apt;
 
@@ -66,6 +67,7 @@ bool AppSample::init(const apt::ArgList& _args)
  // init the app
 	PropertyGroup* propGroup;
 	APT_VERIFY(propGroup = m_props.findGroup("AppSample"));
+
 	m_window = Window::Create(m_windowSizeProp.x, m_windowSizeProp.y, m_name);
 		
 	ivec2* glVersion = (ivec2*)propGroup->find("GlVersion")->getData();
@@ -80,8 +82,8 @@ bool AppSample::init(const apt::ArgList& _args)
 
 	// \hack can't change the props, but need to set m_resolution/m_windowSize to the correct values
 	m_windowSize = ivec2(m_window->getWidth(), m_window->getHeight());
-	m_resolution.x = m_resolutionProp.x == -1 ? m_windowSize.x : m_resolutionProp.x;
-	m_resolution.y = m_resolutionProp.y == -1 ? m_windowSize.y : m_resolutionProp.y;
+	m_resolution.x = m_windowSize.x ;
+	m_resolution.y = m_windowSize.y ;
 
  // set ImGui callbacks
  // \todo poll input directly = easier to use proxy devices
@@ -157,7 +159,7 @@ bool AppSample::update()
 
  // keyboard shortcuts
 	Keyboard* keyboard = Input::GetKeyboard();
-	if (keyboard->wasPressed(Keyboard::Key_Escape)) {
+	if (keyboard->wasPressed(Keyboard::Key_Escape) && ImGui::IsKeyDown(Keyboard::Key_LShift)) {
 		return false;
 	}
 	if (keyboard->wasPressed(Keyboard::Key_F1)) {
@@ -290,7 +292,6 @@ bool AppSample::update()
 	if (m_showShaderViewer) {
 		Shader::ShowShaderViewer(&m_showShaderViewer);
 	}
-	
 
 	return true;
 }
@@ -328,8 +329,8 @@ AppSample::AppSample(const char* _name)
 
 	PropertyGroup& propGroup = m_props.addGroup("AppSample");
 	//                name                     default        min     max                          storage
-	propGroup.addInt2("Resolution",            ivec2(-1),     1,      8192,                        &m_resolutionProp);
-	propGroup.addInt2("WindowSize",            ivec2(-1),     1,      8192,                        &m_windowSizeProp);
+	propGroup.addInt2("Resolution",            ivec2(1920*2, 1000),     1,      8192,                        &m_resolutionProp);
+	propGroup.addInt2("WindowSize",            ivec2(1920*2, 1000),     1,      8192,                        &m_windowSizeProp);
 	propGroup.addInt ("Vsync Mode",            0,             0,      (int)GlContext::Vsync_On3,   &m_vsyncMode);
 	propGroup.addBool("Show Menu",             false,                                              &m_showMenu);
 	propGroup.addBool("Show Log",              false,                                              &m_showLog);
@@ -429,9 +430,10 @@ bool AppSample::ImGui_Init()
 	unsigned char* buf;
 	int txX, txY;
 	ImFontConfig fontCfg;
-	fontCfg.OversampleH = fontCfg.OversampleV = 1;
-	io.Fonts->AddFontDefault();
-	//io.Fonts->AddFontFromFileTTF("common/fonts/Roboto-Regular.ttf", 13.0f, &fontCfg);
+	fontCfg.OversampleH = fontCfg.OversampleV = 2;
+	//io.Fonts->AddFontDefault();
+	//io.Fonts->AddFontFromFileTTF("common/fonts/gothic.ttf", 15.0f, &fontCfg);
+	io.Fonts->AddFontFromFileTTF("common/fonts/calibri.ttf", 15.0f, &fontCfg);
 	fontCfg.MergeMode = true;
 	const ImWchar glyphRanges[] = { 0xf000, 0xf2e0, 0 };
 	io.Fonts->AddFontFromFileTTF("common/fonts/fontawesome-webfont.ttf", 13.0f, &fontCfg, glyphRanges);
@@ -562,12 +564,12 @@ void AppSample::ImGui_Update(AppSample* _app)
 	*/
 
  // consume keyboard/mouse input
-	if (io.WantCaptureKeyboard) {
+	/*if (io.WantCaptureKeyboard) {
 		Input::ResetKeyboard();
 	}
 	if (io.WantCaptureMouse) {
 		Input::ResetMouse();
-	}
+	}*/
 
 
 	io.ImeWindowHandle = _app->getWindow()->getHandle();
