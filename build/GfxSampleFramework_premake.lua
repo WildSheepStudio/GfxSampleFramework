@@ -29,7 +29,7 @@ workspace "GfxSampleFramework"
 	location(_ACTION)
 	configurations { "Debug", "Release" }
 	platforms { "Win64" }
-	flags { "C++11", "StaticRuntime" }
+	flags { "C++11" }
 	filter { "platforms:Win64" }
 		system "windows"
 		architecture "x86_64"
@@ -47,6 +47,12 @@ workspace "GfxSampleFramework"
 			APT_DIR .. "src/win/",
 			APT_DIR .. "src/win/extern/",
 			})
+		
+	configuration{"vs*", "configurations:Debug"}
+		buildoptions {"/MDd"}
+
+	configuration{"vs*", "configurations:Release"}
+		buildoptions {"/MTd"}
 
 	group "libs"
 		externalproject "ApplicationTools"

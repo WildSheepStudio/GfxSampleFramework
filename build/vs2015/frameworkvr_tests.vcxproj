@@ -59,7 +59,7 @@
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>APT_DEBUG;FRM_DEBUG;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\src\all;..\..\src\all\extern;..\..\extern\ApplicationTools\src\all;..\..\extern\ApplicationTools\src\all\extern;..\..\src\win;..\..\extern\ApplicationTools\src\win;..\..\extern\ApplicationTools\src\win\extern;..\..\tests;..\..\src\vr\all;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
