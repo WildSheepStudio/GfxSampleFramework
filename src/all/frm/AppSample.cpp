@@ -433,7 +433,7 @@ bool AppSample::ImGui_Init()
 	fontCfg.OversampleH = fontCfg.OversampleV = 2;
 	//io.Fonts->AddFontDefault();
 	//io.Fonts->AddFontFromFileTTF("common/fonts/gothic.ttf", 15.0f, &fontCfg);
-	io.Fonts->AddFontFromFileTTF("common/fonts/calibri.ttf", 15.0f, &fontCfg);
+	io.Fonts->AddFontFromFileTTF("TerraFormer/fonts/calibri.ttf", 15.0f, &fontCfg);
 	fontCfg.MergeMode = true;
 	const ImWchar glyphRanges[] = { 0xf000, 0xf2e0, 0 };
 	io.Fonts->AddFontFromFileTTF("common/fonts/fontawesome-webfont.ttf", 13.0f, &fontCfg, glyphRanges);
