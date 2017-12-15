@@ -11,12 +11,17 @@ local TESTS_DIR       = "../tests/"
 local ALL_TESTS_DIR   = TESTS_DIR .. "all/"
 local VR_TESTS_DIR    = TESTS_DIR .. "vr/"
 
-filter { "configurations:debug" }
+filter { "configurations:Debug" }
 	defines { "APT_DEBUG", "FRM_DEBUG" }
 	targetsuffix "_debug"
 	symbols "On"
 	optimize "Off"
-	
+
+filter { "configurations:Debug_Optimized" }
+	targetsuffix "_debugOptimized"
+	symbols "Off"
+	optimize "On"
+
 filter { "configurations:release" }
 	symbols "Off"
 	optimize "Full"
@@ -27,7 +32,7 @@ filter { "action:vs*" }
 
 workspace "GfxSampleFramework"
 	location(_ACTION)
-	configurations { "Debug", "Release" }
+	configurations { "Debug", "Debug_Optimized", "Release" }
 	platforms { "Win64" }
 	flags { "C++11" }
 	filter { "platforms:Win64" }
@@ -50,6 +55,9 @@ workspace "GfxSampleFramework"
 		
 	configuration{"vs*", "configurations:Debug"}
 		buildoptions {"/MDd"}
+
+	configuration{"vs*", "configurations:Debug_Optimized"}
+		buildoptions {"/MTd"}
 
 	configuration{"vs*", "configurations:Release"}
 		buildoptions {"/MTd"}
