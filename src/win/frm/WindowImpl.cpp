@@ -219,8 +219,8 @@ Window* Window::Create(int _width, int _height, const char* _title)
 	 // auto size; get the dimensions of the dual screen area and subtract the non-client area
 		RECT r;
 		APT_PLATFORM_VERIFY(SystemParametersInfo(SPI_GETWORKAREA, 0, &r, 0));
-		_width  = GetSystemMetrics(SM_CXVIRTUALSCREEN) - 20;
-		_height = GetSystemMetrics(SM_CYVIRTUALSCREEN) - 80;
+		_width  = r.right - r.left;
+		_height = r.bottom - r.top;
 
 		RECT wr = {};
 		APT_PLATFORM_VERIFY(AdjustWindowRectEx(&wr, dwStyle, FALSE, dwExStyle));

@@ -329,8 +329,8 @@ AppSample::AppSample(const char* _name)
 
 	PropertyGroup& propGroup = m_props.addGroup("AppSample");
 	//                name                     default        min     max                          storage
-	propGroup.addInt2("Resolution",            ivec2(1920*2, 1000),     1,      8192,                        &m_resolutionProp);
-	propGroup.addInt2("WindowSize",            ivec2(1920*2, 1000),     1,      8192,                        &m_windowSizeProp);
+	propGroup.addInt2("Resolution",            ivec2(-1.f, -1.f),     1,      8192,                        &m_resolutionProp);
+	propGroup.addInt2("WindowSize",            ivec2(-1.f, -1.f),     1,      8192,                        &m_windowSizeProp);
 	propGroup.addInt ("Vsync Mode",            0,             0,      (int)GlContext::Vsync_On3,   &m_vsyncMode);
 	propGroup.addBool("Show Menu",             false,                                              &m_showMenu);
 	propGroup.addBool("Show Log",              false,                                              &m_showLog);
