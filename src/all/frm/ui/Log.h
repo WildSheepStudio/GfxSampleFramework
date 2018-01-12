@@ -38,6 +38,7 @@ public:
 	const Message* addMessage(const char* _msg, ImU32 _col = ImColor(255, 255, 255));
 	void           draw();
 
+	ImGuiTextFilter m_filter;
 private:
 	Message*       m_msgBuf;
 	Message*       m_msgBufHead;     //< First message.
@@ -52,7 +53,6 @@ private:
 	const Message* m_lastDbg;
 	const Message* m_lastErr;
 	bool           m_scrollToBottom; 
-
 }; // class Log
 
 } } // namespace frm::ui

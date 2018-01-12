@@ -133,10 +133,15 @@ void Log::draw()
 {
 	const Message* msg = m_msgBufHead;
 	const Message* msgEnd = m_msgBuf + m_msgBufCapacity;
-	while (msg != m_msgBufNext) {
-		ImGui::PushStyleColor(ImGuiCol_Text, ImColor(msg->m_col));
-		ImGui::TextWrapped(msg->m_txt);
-		ImGui::PopStyleColor();
+
+	while (msg != m_msgBufNext) {		
+
+		if (m_filter.PassFilter(msg->m_txt)) {			
+			ImGui::PushStyleColor(ImGuiCol_Text, ImColor(msg->m_col));
+			ImGui::TextWrapped(msg->m_txt);
+			ImGui::PopStyleColor();
+		}
+
 		++msg;
 		if (msg >= msgEnd) {
 			msg = m_msgBuf;
