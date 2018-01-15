@@ -148,6 +148,7 @@ Id    GetActiveId(); // GetActiveId() != Id_Invalid means that a gizmo is in use
 // push the local matrix before calling any of the following.
 bool  GizmoTranslation(const char* _id, float _translation_[3], bool _local = false);
 bool  GizmoRotation(const char* _id, float _rotation_[3*3], bool _local = false);
+bool  GizmoRotationAroundUpAxis(const char* _id, float _rotation_[3 * 3], bool _local);
 bool  GizmoScale(const char* _id, float _scale_[3]); // local scale only
 // Unified gizmo, selects local/global, translation/rotation/scale based on the context-global gizmo modes. Return true if the gizmo is active.
 bool  Gizmo(const char* _id, float _translation_[3], float _rotation_[3*3], float _scale_[3]); // any of _translation_/_rotation_/_scale_ may be null.

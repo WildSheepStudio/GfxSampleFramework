@@ -578,6 +578,56 @@ bool Im3d::GizmoTranslation(const char* _id, float _translation_[3], bool _local
 
 	return ret;
 }
+
+bool Im3d::GizmoRotationAroundUpAxis(const char* _id, float _rotation_[3 * 3], bool _local)
+{
+	Context& ctx = GetContext();
+	Id currentId = ctx.m_activeId; // store currentId to detect if the gizmo becomes active during this call
+	ctx.pushId(MakeId(_id));
+
+	bool ret = false;
+	Mat3& storedRotation = ctx.m_gizmoStateMat3;
+	Mat3* outMat3 = (Mat3*)_rotation_;
+	Vec3 euler = ToEulerXYZ(*outMat3);
+	Vec3 origin = ctx.getMatrix().getTranslation();
+
+	float worldRadius = ctx.pixelsToWorldSize(origin, ctx.m_gizmoHeightPixels);
+	float worldSize = ctx.pixelsToWorldSize(origin, ctx.m_gizmoSizePixels);
+
+	struct AxisG { Id m_id; Vec3 m_axis; Color m_color; };
+	AxisG axes = { MakeId("axisY"), Vec3(0.0f, 1.0f, 0.0f), Color_Green };
+	Id viewId = MakeId("axisV");
+
+	if (_local) {
+		// extract axes from the pushed matrix
+		if (ctx.m_activeId == axes.m_id) {
+			// use the stored matrix where the id is active, avoid rotating the axis frame during interaction (cause numerical instability)
+			axes.m_axis = Normalize(Vec3(storedRotation.getCol(1)));
+		}
+		else {
+			axes.m_axis = Normalize(Vec3(ctx.getMatrix().getCol(1)));
+		}
+	}
+
+	ctx.pushMatrix(Mat4(1.0f));
+
+	AxisG& axis = axes;
+	ctx.gizmoAxislAngle_Draw(axis.m_id, origin, axis.m_axis, worldRadius * 0.9f, euler[1], axis.m_color);
+	if (ctx.gizmoAxislAngle_Behavior(axis.m_id, origin, axis.m_axis, worldRadius * 0.9f, worldSize, &euler[1])) {
+		*outMat3 = Rotation(axis.m_axis, euler[1] - ctx.m_gizmoStateFloat) * storedRotation;
+		ret = true;
+	}
+	
+	ctx.popMatrix();
+
+	if (currentId != ctx.m_activeId) {
+		// gizmo became active, store rotation matrix
+		storedRotation = *outMat3;
+	}
+	ctx.popId();
+	return ret;
+}
+
 bool Im3d::GizmoRotation(const char* _id, float _rotation_[3*3], bool _local)
 {
 	Context& ctx = GetContext();
