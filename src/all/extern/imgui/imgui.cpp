@@ -4039,7 +4039,8 @@ bool ImGui::Begin(const char* name, bool* p_open, const ImVec2& size_on_first_us
         // Lock window padding so that altering the ShowBorders flag for children doesn't have side-effects.
         window->WindowPadding = ((flags & ImGuiWindowFlags_ChildWindow) && !(flags & (ImGuiWindowFlags_AlwaysUseWindowPadding | ImGuiWindowFlags_ShowBorders | ImGuiWindowFlags_ComboBox | ImGuiWindowFlags_Popup ))) ? ImVec2(0,0) : style.WindowPadding;
 		if (flags & ImGuiWindowFlags_NoShowBordersOnWindow)
-			window->WindowPadding = ImVec2(1, 1);
+			window->WindowPadding = ImVec2(0, 0);
+		
 
         // Calculate auto-fit size
         ImVec2 size_auto_fit;
@@ -4232,7 +4233,7 @@ bool ImGui::Begin(const char* name, bool* p_open, const ImVec2& size_on_first_us
             window->ScrollbarY = (flags & ImGuiWindowFlags_AlwaysVerticalScrollbar) || ((window->SizeContents.y > window->Size.y + style.ItemSpacing.y) && !(flags & ImGuiWindowFlags_NoScrollbar));
             window->ScrollbarX = (flags & ImGuiWindowFlags_AlwaysHorizontalScrollbar) || ((window->SizeContents.x > window->Size.x - (window->ScrollbarY ? style.ScrollbarSize : 0.0f) - window->WindowPadding.x) && !(flags & ImGuiWindowFlags_NoScrollbar) && (flags & ImGuiWindowFlags_HorizontalScrollbar));
             window->ScrollbarSizes = ImVec2(window->ScrollbarY ? style.ScrollbarSize : 0.0f, window->ScrollbarX ? style.ScrollbarSize : 0.0f);
-			window->BorderSize = (flags & ImGuiWindowFlags_ShowBorders) ? 1.0f : 0.0f;
+			window->BorderSize = ((flags & ImGuiWindowFlags_ShowBorders) && !(flags & ImGuiWindowFlags_NoShowBordersOnWindow)) ? 1.0f : 0.0f;
 
             // Window background, Default Alpha
             ImGuiCol bg_color_idx = ImGuiCol_WindowBg;
