@@ -4039,7 +4039,7 @@ bool ImGui::Begin(const char* name, bool* p_open, const ImVec2& size_on_first_us
         // Lock window padding so that altering the ShowBorders flag for children doesn't have side-effects.
         window->WindowPadding = ((flags & ImGuiWindowFlags_ChildWindow) && !(flags & (ImGuiWindowFlags_AlwaysUseWindowPadding | ImGuiWindowFlags_ShowBorders | ImGuiWindowFlags_ComboBox | ImGuiWindowFlags_Popup ))) ? ImVec2(0,0) : style.WindowPadding;
 		if (flags & ImGuiWindowFlags_NoShowBordersOnWindow)
-			window->WindowPadding = ImVec2(2, 2);
+			window->WindowPadding = ImVec2(1, 1);
 
         // Calculate auto-fit size
         ImVec2 size_auto_fit;
