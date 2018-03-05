@@ -37,6 +37,7 @@ public:
 	const Message* addMessage(const char* _msg, apt::LogType _type);
 	const Message* addMessage(const char* _msg, ImU32 _col = ImColor(255, 255, 255));
 	void           draw();
+	void		   clear();
 
 	ImGuiTextFilter m_filter;
 private:
