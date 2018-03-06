@@ -35,6 +35,7 @@ Log::Log(int _maxMessageCount, int _maxMessageLength)
 	, m_lastDbg(0)
 	, m_lastErr(0)
 	, m_scrollToBottom(true)
+	, m_timeBeforeLastMessage(0.f)
 {
 
 	m_msgBuf     = new Message[m_msgBufCapacity];
@@ -64,7 +65,7 @@ const Log::Message* Log::addMessage(const char* _msg, LogType _type)
 		case LogType_Log:  
 		default:             ret = m_lastLog = addMessage(_msg, kColorLog); break;
 	};
-
+	m_timeBeforeLastMessage = 0.f;
 	return ret;
 }
 
@@ -171,4 +172,9 @@ void Log::draw()
 		ImGui::SetScrollHere();
 		m_scrollToBottom = false;
 	}
+}
+
+void Log::update(float _dt)
+{
+	m_timeBeforeLastMessage += _dt;
 }

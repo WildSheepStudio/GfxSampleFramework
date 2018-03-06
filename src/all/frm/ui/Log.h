@@ -38,6 +38,10 @@ public:
 	const Message* addMessage(const char* _msg, ImU32 _col = ImColor(255, 255, 255));
 	void           draw();
 	void		   clear();
+	void		   update(float _dt);
+
+	float		   getTimeBeforeLastMessage() { return m_timeBeforeLastMessage; }
+	void		   cleanLastError()			  { m_lastErr = nullptr; }
 
 	ImGuiTextFilter m_filter;
 private:
@@ -53,7 +57,9 @@ private:
 	const Message* m_lastLog;
 	const Message* m_lastDbg;
 	const Message* m_lastErr;
-	bool           m_scrollToBottom; 
+	bool           m_scrollToBottom;
+
+	float		   m_timeBeforeLastMessage;
 }; // class Log
 
 } } // namespace frm::ui
