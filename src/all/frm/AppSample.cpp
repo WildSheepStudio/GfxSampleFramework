@@ -425,12 +425,13 @@ bool AppSample::ImGui_Init()
 	int txX, txY;
 	ImFontConfig fontCfg;
 	fontCfg.OversampleH = fontCfg.OversampleV = 1;
-	io.Fonts->AddFontDefault();
-	//io.Fonts->AddFontFromFileTTF("common/fonts/Roboto-Regular.ttf", 13.0f, &fontCfg);
+	//io.Fonts->AddFontDefault();
+	io.Fonts->AddFontFromFileTTF("TerraFormer/fonts/calibri.ttf", 14.0f, &fontCfg);
 	fontCfg.MergeMode = true;
 	const ImWchar glyphRanges[] = { 0xf000, 0xf2e0, 0 };
 	io.Fonts->AddFontFromFileTTF("common/fonts/fontawesome-webfont.ttf", 13.0f, &fontCfg, glyphRanges);
-	
+
+
 	io.Fonts->GetTexDataAsAlpha8(&buf, &txX, &txY);
 	g_txImGui = Texture::Create2d(txX, txY, GL_R8);
 	g_txImGui->setFilter(GL_NEAREST);
