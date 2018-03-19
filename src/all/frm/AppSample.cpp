@@ -424,9 +424,9 @@ bool AppSample::ImGui_Init()
 	unsigned char* buf;
 	int txX, txY;
 	ImFontConfig fontCfg;
-	fontCfg.OversampleH = fontCfg.OversampleV = 1;
+	fontCfg.OversampleH = fontCfg.OversampleV = 2;
 	//io.Fonts->AddFontDefault();
-	io.Fonts->AddFontFromFileTTF("TerraFormer/fonts/calibri.ttf", 14.0f, &fontCfg);
+	io.Fonts->AddFontFromFileTTF("TerraFormer/fonts/calibri.ttf", 15.0f, &fontCfg);
 	fontCfg.MergeMode = true;
 	const ImWchar glyphRanges[] = { 0xf000, 0xf2e0, 0 };
 	io.Fonts->AddFontFromFileTTF("common/fonts/fontawesome-webfont.ttf", 13.0f, &fontCfg, glyphRanges);
