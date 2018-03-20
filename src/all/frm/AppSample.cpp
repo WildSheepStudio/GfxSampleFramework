@@ -571,10 +571,11 @@ void AppSample::ImGui_Update(AppSample* _app)
 	if (io.WantCaptureKeyboard) {
 		Input::ResetKeyboard();
 	}
+	/*
 	if (io.WantCaptureMouse) {
 		Input::ResetMouse();
 	}
-
+	*/
 
 	io.ImeWindowHandle = _app->getWindow()->getHandle();
 	if (_app->getDefaultFramebuffer()) {
