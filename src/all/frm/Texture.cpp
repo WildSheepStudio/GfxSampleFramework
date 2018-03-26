@@ -135,10 +135,10 @@ struct TextureViewer
 	
 		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetFrameHeightWithSpacing()), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2), ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("Texture Viewer", _open_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
-			ImGui::End();
-			return; // window collapsed, early-out
-		}
+		//if (!ImGui::Begin("Texture Viewer", _open_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+		//	ImGui::End();
+		//	return; // window collapsed, early-out
+		//}
 	
 		ImGuiIO& io = ImGui::GetIO();
 	
@@ -393,7 +393,7 @@ struct TextureViewer
 			ImGui::Columns(1);
 		}
 	
-		ImGui::End();
+		//ImGui::End();
 	}
 };
 
