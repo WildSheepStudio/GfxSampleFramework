@@ -55,7 +55,7 @@ bool AppSample::init(const apt::ArgList& _args)
 	if (!App::init(_args)) {
 		return false;
 	}
-	
+
 	FileSystem::SetRoot(FileSystem::RootType_Common, "common");
 	FileSystem::SetRoot(FileSystem::RootType_Application, (const char*)m_name);
 
@@ -68,7 +68,7 @@ bool AppSample::init(const apt::ArgList& _args)
 	ivec2 windowSize     = *propGroup->find("WindowSize")->asInt2();
 	m_window             = Window::Create(windowSize.x, windowSize.y, (const char*)m_name);
 	m_windowSize         = ivec2(m_window->getWidth(), m_window->getHeight());
-		
+
 	ivec2 glVersion      = *propGroup->find("GlVersion")->asInt2();
 	bool glCompatibility = *propGroup->find("GlCompatibility")->asBool();
 	m_glContext          = GlContext::Create(m_window, glVersion.x, glVersion.y, glCompatibility);
@@ -102,7 +102,7 @@ bool AppSample::init(const apt::ArgList& _args)
 	ImGui::SetNextWindowSize(ImVec2(sizeof("Loading") * ImGui::GetFontSize(), ImGui::GetFrameHeightWithSpacing()));
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 	ImGui::Begin(
-		"Loading", 0, 
+		"Loading", 0,
 		ImGuiWindowFlags_NoTitleBar |
 		ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_NoMove |
@@ -118,16 +118,16 @@ bool AppSample::init(const apt::ArgList& _args)
 }
 
 void AppSample::shutdown()
-{	
+{
 	ImGui_Shutdown();
-	
+
 	if (m_glContext) {
 		GlContext::Destroy(m_glContext);
 	}
 	if (m_window) {
 		Window::Destroy(m_window);
 	}
-	
+
 	writeProps((const char*)m_propsPath);
 
 	App::shutdown();
@@ -178,10 +178,10 @@ bool AppSample::update()
 	if (ImGui::IsKeyPressed(Keyboard::Key_3) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
 		m_showShaderViewer = !m_showShaderViewer;
 	}
-	
+
  // AppSample UI
 	const float kStatusBarHeight = ImGui::GetFrameHeightWithSpacing();// + 4.0f;
-	const ImGuiWindowFlags kStatusBarFlags = 
+	const ImGuiWindowFlags kStatusBarFlags =
 		ImGuiWindowFlags_NoTitleBar |
 		ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_NoMove |
@@ -200,12 +200,12 @@ bool AppSample::update()
 		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, kStatusBarHeight));
 		ImGui::Begin("Status Bar", 0, kStatusBarFlags);
 			ImGui::AlignTextToFramePadding();
-			
+
 			float cpuAvgFrameDuration = (float)Timestamp(Profiler::GetCpuAvgFrameDuration()).asMilliseconds();
 			float gpuAvgFrameDuration = (float)Timestamp(Profiler::GetGpuAvgFrameDuration()).asMilliseconds();
 			ImGui::Text("CPU %-4.2fms GPU %-4.2fms", cpuAvgFrameDuration, gpuAvgFrameDuration);
 			m_showProfilerViewer = ImGui::IsItemClicked() ? !m_showProfilerViewer : m_showProfilerViewer;
-			
+
 			ImGui::SameLine();
 			float cursorPosX = ImGui::GetCursorPosX();
 			float logPosX = ImGui::GetContentRegionMax().x - ImGui::GetContentRegionAvailWidth() * 0.3f;
@@ -219,7 +219,7 @@ bool AppSample::update()
 			ImGui::SetCursorPosX(logPosX);
 			ImGui::TextColored(ImColor(logMsg->m_col), logMsg->m_txt);
 			m_showLog = ImGui::IsItemClicked() ? !m_showLog : m_showLog;
-			
+
 			ImGui::SameLine();
 			ImGui::SetCursorPosX(cursorPosX);
 
@@ -233,7 +233,7 @@ bool AppSample::update()
 			float logPosY = io.DisplaySize.y * 0.7f;
 			ImGui::SetNextWindowPos(ImVec2(logPosX, logPosY));
 			ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x - logPosX, io.DisplaySize.y - logPosY - kStatusBarHeight));
-			ImGui::Begin("Log", 0, 
+			ImGui::Begin("Log", 0,
 				ImGuiWindowFlags_NoTitleBar |
 				ImGuiWindowFlags_NoResize |
 				ImGuiWindowFlags_NoMove |
@@ -249,7 +249,7 @@ bool AppSample::update()
 				if (ImGui::MenuItem("Profiler",       "Ctrl+1",   m_showProfilerViewer)) m_showProfilerViewer = !m_showProfilerViewer;
 				if (ImGui::MenuItem("Texture Viewer", "Ctrl+2",   m_showTextureViewer))  m_showTextureViewer  = !m_showTextureViewer;
 				if (ImGui::MenuItem("Shader Viewer",  "Ctrl+3",   m_showShaderViewer))   m_showShaderViewer   = !m_showShaderViewer;
-				
+
 				ImGui::EndMenu();
 			}
 			float vsyncWidth = (float)sizeof("Adaptive") * ImGui::GetFontSize();
@@ -262,10 +262,10 @@ bool AppSample::update()
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
 			ImGui::SetCursorPosX(cursorX);
-			
+
 		 // draw app items
 			drawMainMenuBar();
-			
+
 			ImGui::EndMainMenuBar();
 		}
 	}
@@ -284,7 +284,7 @@ bool AppSample::update()
 	if (m_showShaderViewer) {
 		Shader::ShowShaderViewer(&m_showShaderViewer);
 	}
-	
+
 
 	return true;
 }
@@ -378,11 +378,11 @@ bool AppSample::ImGui_Init()
 {
 	auto  app = AppSample::GetCurrent();
 	auto& io  = ImGui::GetIO();
-	
+
  // mesh
  	if (g_msImGui) {
 		Mesh::Release(g_msImGui);
-	}	
+	}
 	MeshDesc meshDesc(MeshDesc::Primitive_Triangles);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 2);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType_Float32, 2);
@@ -439,7 +439,7 @@ bool AppSample::ImGui_Init()
 	g_txViewImGui = TextureView(g_txImGui);
 	io.Fonts->TexID = (void*)&g_txViewImGui; // need a TextureView ptr for rendering
 
-	
+
  // init ImGui state
 	io.KeyMap[ImGuiKey_Tab]        = Keyboard::Key_Tab;
     io.KeyMap[ImGuiKey_LeftArrow]  = Keyboard::Key_Left;
@@ -539,10 +539,10 @@ void AppSample::ImGui_Shutdown()
 		Shader::Release(g_shTextureView[i]);
 	}
 	Shader::Release(g_shImGui);
-	Mesh::Release(g_msImGui); 
+	Mesh::Release(g_msImGui);
 	Texture::Release(g_txImGui);
 	Texture::Release(g_txRadar);
-	
+
 	ImGui::Shutdown();
 }
 
@@ -598,7 +598,7 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 
 	if (_drawData->CmdListsCount == 0) {
 		return;
-	}	
+	}
 	int fbX = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
     int fbY = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
     if (fbX == 0 || fbY == 0) {
@@ -631,7 +631,7 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 		g_msImGui->setVertexData((GLvoid*)&drawList->VtxBuffer.front(), (GLsizeiptr)drawList->VtxBuffer.size(), GL_STREAM_DRAW);
 		APT_STATIC_ASSERT(sizeof(ImDrawIdx) == sizeof(uint16)); // need to change the index data type if this fails
 		g_msImGui->setIndexData(DataType_Uint16, (GLvoid*)&drawList->IdxBuffer.front(), (GLsizeiptr)drawList->IdxBuffer.size(), GL_STREAM_DRAW);
-	
+
 	 // dispatch draw commands
 		for (const ImDrawCmd* pcmd = drawList->CmdBuffer.begin(); pcmd != drawList->CmdBuffer.end(); ++pcmd) {
 			if (pcmd->UserCallback) {
@@ -677,13 +677,13 @@ bool AppSample::ImGui_OnMouseButton(Window* _window, unsigned _button, bool _isD
 		case Mouse::Button_Middle:  io.MouseDown[2] = _isDown; break;
 		default: break;
 	};
-	
+
 	return true;
 }
 bool AppSample::ImGui_OnMouseWheel(Window* _window, float _delta)
 {
 	ImGuiIO& io = ImGui::GetIO();
-	io.MouseWheel = _delta;	
+	io.MouseWheel = _delta;
 	return true;
 }
 bool AppSample::ImGui_OnKey(Window* _window, unsigned _key, bool _isDown)
@@ -702,12 +702,12 @@ bool AppSample::ImGui_OnKey(Window* _window, unsigned _key, bool _isDown)
 		case Keyboard::Key_LShift:
 		case Keyboard::Key_RShift:
 			io.KeyShift = _isDown;
-			break;			
+			break;
 		case Keyboard::Key_LAlt:
 		case Keyboard::Key_RAlt:
 			io.KeyAlt = _isDown;
 			break;
-		default: 
+		default:
 			break;
 	};
 
