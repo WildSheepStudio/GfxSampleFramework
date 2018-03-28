@@ -504,7 +504,7 @@ struct ProfilerViewer
 				ImGui::SameLine();
 				ImGui::Checkbox("Show Hidden", &m_showHidden);
 				ImGui::SameLine();
-				if (ImGui::SmallButton(Profiler::s_pause ? "Resume" : "Pause")) {
+				if (ImGui::SmallButton(Profiler::s_pause ? "Resume" : "Pause") || ImGui::IsKeyReleased(Keyboard::Key_Pause)) {
 					Profiler::s_pause = !Profiler::s_pause;
 				}
 				ImGui::EndMenuBar();
