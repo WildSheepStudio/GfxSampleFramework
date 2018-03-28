@@ -151,6 +151,7 @@ public:
 	static void Shutdown();
 
 	static void ShowProfilerViewer(bool* _open_);
+	static void DrawContent();
 
 }; // class Profiler
 APT_DECLARE_STATIC_INIT(Profiler, Profiler::Init, Profiler::Shutdown);

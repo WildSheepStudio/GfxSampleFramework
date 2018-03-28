@@ -470,52 +470,57 @@ struct ProfilerViewer
 		ImGui::PopStyleVar(2);
 	}
 
+	void drawContent()
+	{
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("View")) {
+				if (ImGui::MenuItem("Markers")) {
+					m_view = View_Markers;
+				}
+				if (ImGui::MenuItem("Values")) {
+					m_view = View_Values;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenuBar();
+		}
+
+		switch (m_view) {
+		case View_Values:
+			drawValues();
+			break;
+		case View_Markers:
+		default:
+			drawMarkers();
+			break;
+		};
+
+		if (ImGui::BeginMenuBar()) {
+			m_filter.Draw("Filter", 160.0f);
+			ImGui::SameLine();
+			ImGui::Checkbox("Show Hidden", &m_showHidden);
+			ImGui::SameLine();
+			if (ImGui::SmallButton(Profiler::s_pause ? "Resume" : "Pause")) {
+				Profiler::s_pause = !Profiler::s_pause;
+			}
+			ImGui::EndMenuBar();
+		}
+
+		// shortcuts
+		Keyboard* keyb = Input::GetKeyboard();
+		if (keyb->isDown(Keyboard::Key_LCtrl) && keyb->isDown(Keyboard::Key_LShift) && keyb->wasPressed(Keyboard::Key_P) || keyb->wasPressed(Keyboard::Key_Pause)) {
+			Profiler::s_pause = !Profiler::s_pause;
+		}
+	}
+
 	void draw(bool *_isOpen_)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetFrameHeightWithSpacing()), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y / 4), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Profiler", _isOpen_, ImGuiWindowFlags_MenuBar);
-			if (ImGui::BeginMenuBar()) {
-				if (ImGui::BeginMenu("View")) {
-					if (ImGui::MenuItem("Markers")) {
-						m_view = View_Markers;
-					}
-					if (ImGui::MenuItem("Values")) {
-						m_view = View_Values;
-					}
-					ImGui::EndMenu();
-				}
-				ImGui::EndMenuBar();
-			}
-		
-			switch (m_view) {
-				case View_Values:
-					drawValues();
-					break;
-				case View_Markers:
-				default:
-					drawMarkers();
-					break;
-			};
-
-			if (ImGui::BeginMenuBar()) {			
-				m_filter.Draw("Filter", 160.0f);
-				ImGui::SameLine();
-				ImGui::Checkbox("Show Hidden", &m_showHidden);
-				ImGui::SameLine();
-				if (ImGui::SmallButton(Profiler::s_pause ? "Resume" : "Pause") || ImGui::IsKeyReleased(Keyboard::Key_Pause)) {
-					Profiler::s_pause = !Profiler::s_pause;
-				}
-				ImGui::EndMenuBar();
-			}
+		drawContent();
 		ImGui::End();
-
-	 // shortcuts
-		Keyboard* keyb = Input::GetKeyboard();
-		if (keyb->isDown(Keyboard::Key_LCtrl) && keyb->isDown(Keyboard::Key_LShift) && keyb->wasPressed(Keyboard::Key_P)) {
-			Profiler::s_pause = !Profiler::s_pause;
-		}
 	}
 };
 ProfilerViewer::Colors  ProfilerViewer::kColorsGpu;
@@ -529,6 +534,10 @@ void Profiler::ShowProfilerViewer(bool* _open_)
 	g_profilerViewer.draw(_open_);
 }
 
+void Profiler::DrawContent()
+{
+	g_profilerViewer.drawContent();
+}
 
 /******************************************************************************
 
