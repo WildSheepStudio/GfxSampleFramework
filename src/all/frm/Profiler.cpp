@@ -508,7 +508,7 @@ struct ProfilerViewer
 
 		// shortcuts
 		Keyboard* keyb = Input::GetKeyboard();
-		if (keyb->isDown(Keyboard::Key_LCtrl) && keyb->isDown(Keyboard::Key_LShift) && keyb->wasPressed(Keyboard::Key_P) || keyb->wasPressed(Keyboard::Key_Pause)) {
+		if (keyb->isDown(Keyboard::Key_LCtrl) && keyb->isDown(Keyboard::Key_LShift) && keyb->wasPressed(Keyboard::Key_P) || ImGui::IsKeyReleased(Keyboard::Key_Pause)) {
 			Profiler::s_pause = !Profiler::s_pause;
 		}
 	}
