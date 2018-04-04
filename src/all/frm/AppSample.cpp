@@ -21,6 +21,7 @@
 #include <imgui/imgui.h>
 
 #include <cstring>
+#include <iostream>
 
 using namespace frm;
 using namespace apt;
@@ -91,8 +92,11 @@ bool AppSample::init(const apt::ArgList& _args)
 	cb.m_OnKey           = ImGui_OnKey;
 	cb.m_OnChar          = ImGui_OnChar;
 	m_window->setCallbacks(cb);
-
-	m_window->show();
+	
+	apt::ArgList args = _args;
+	const apt::Arg& argShow = args.getArg(0);
+	if(args.getArgCount() == 0 || strcmp(argShow.getValue(), "true") == 0)
+		m_window->show();
 
  // splash screen
 	APT_VERIFY(AppSample::update());
@@ -108,7 +112,8 @@ bool AppSample::init(const apt::ArgList& _args)
 		ImGuiWindowFlags_NoMove |
 		ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_AlwaysAutoResize
-		);
+	);
+
 	ImGui::Text("Loading");
 	ImGui::End();
 	ImGui::PopStyleColor();
