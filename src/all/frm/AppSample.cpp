@@ -95,7 +95,7 @@ bool AppSample::init(const apt::ArgList& _args)
 	
 	apt::ArgList args = _args;
 	const apt::Arg& argShow = args.getArg(0);
-	if(args.getArgCount() == 0 || strcmp(argShow.getValue(), "true") == 0)
+	if(args.getArgCount() == 0 || strcmp(argShow.getValue(), "visibleMode") == 0)
 		m_window->show();
 
  // splash screen
