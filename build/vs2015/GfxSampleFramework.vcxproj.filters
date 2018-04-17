@@ -7,6 +7,9 @@
     <Filter Include="extern\GL">
       <UniqueIdentifier>{FD84597B-69EF-0DF2-B22D-BF971ED7EB46}</UniqueIdentifier>
     </Filter>
+    <Filter Include="extern\IconFontCppHeaders">
+      <UniqueIdentifier>{C9B01B18-3573-4FA2-7E23-DE2EEA242880}</UniqueIdentifier>
+    </Filter>
     <Filter Include="extern\im3d">
       <UniqueIdentifier>{77F0E1B7-E3A5-5AAD-6C9A-5484D84E51B1}</UniqueIdentifier>
     </Filter>
@@ -18,9 +21,6 @@
     </Filter>
     <Filter Include="extern\tinyobjloader">
       <UniqueIdentifier>{00583F7B-ECE6-C844-9505-DD3F8173D9EA}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ui">
-      <UniqueIdentifier>{C3795900-AF05-880B-18B4-880B045F880B}</UniqueIdentifier>
     </Filter>
     <Filter Include="win">
       <UniqueIdentifier>{13BB880B-7FC4-887C-0840-9F7C7448947C}</UniqueIdentifier>
@@ -36,6 +36,12 @@
     <ClInclude Include="..\..\src\all\extern\GL\wglew.h">
       <Filter>extern\GL</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\extern\IconFontCppHeaders\IconsFontAwesome4.h">
+      <Filter>extern\IconFontCppHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\extern\IconFontCppHeaders\IconsFontAwesome5.h">
+      <Filter>extern\IconFontCppHeaders</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\all\extern\im3d\im3d.h">
       <Filter>extern\im3d</Filter>
     </ClInclude>
@@ -49,6 +55,9 @@
       <Filter>extern\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\imgui\imgui.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\extern\imgui\imgui_ext.h">
       <Filter>extern\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\imgui\imgui_internal.h">
@@ -157,6 +166,7 @@
     <ClInclude Include="..\..\src\all\frm\GlContext.h" />
     <ClInclude Include="..\..\src\all\frm\Input.h" />
     <ClInclude Include="..\..\src\all\frm\Light.h" />
+    <ClInclude Include="..\..\src\all\frm\Log.h" />
     <ClInclude Include="..\..\src\all\frm\LuaScript.h" />
     <ClInclude Include="..\..\src\all\frm\Mesh.h" />
     <ClInclude Include="..\..\src\all\frm\MeshData.h" />
@@ -175,13 +185,8 @@
     <ClInclude Include="..\..\src\all\frm\def.h" />
     <ClInclude Include="..\..\src\all\frm\geom.h" />
     <ClInclude Include="..\..\src\all\frm\gl.h" />
-    <ClInclude Include="..\..\src\all\frm\icon_fa.h" />
-    <ClInclude Include="..\..\src\all\frm\imgui_helpers.h" />
     <ClInclude Include="..\..\src\all\frm\interpolation.h" />
     <ClInclude Include="..\..\src\all\frm\math.h" />
-    <ClInclude Include="..\..\src\all\frm\ui\Log.h">
-      <Filter>ui</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c">
@@ -200,6 +205,9 @@
       <Filter>extern\imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\imgui\imgui_draw.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\extern\imgui\imgui_ext.cpp">
       <Filter>extern\imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lapi.c">
@@ -311,6 +319,7 @@
     <ClCompile Include="..\..\src\all\frm\GlContext.cpp" />
     <ClCompile Include="..\..\src\all\frm\Input.cpp" />
     <ClCompile Include="..\..\src\all\frm\Light.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Log.cpp" />
     <ClCompile Include="..\..\src\all\frm\LuaScript.cpp" />
     <ClCompile Include="..\..\src\all\frm\Mesh.cpp" />
     <ClCompile Include="..\..\src\all\frm\MeshData.cpp" />
@@ -332,10 +341,6 @@
     <ClCompile Include="..\..\src\all\frm\XForm.cpp" />
     <ClCompile Include="..\..\src\all\frm\geom.cpp" />
     <ClCompile Include="..\..\src\all\frm\gl.cpp" />
-    <ClCompile Include="..\..\src\all\frm\imgui_helpers.cpp" />
-    <ClCompile Include="..\..\src\all\frm\ui\Log.cpp">
-      <Filter>ui</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\win\frm\GlContextImpl.cpp">
       <Filter>win</Filter>
     </ClCompile>

@@ -1,18 +1,19 @@
 #include <frm/AppSample.h>
 
-#include <frm/icon_fa.h>
 #include <frm/math.h>
 #include <frm/App.h>
 #include <frm/Framebuffer.h>
 #include <frm/GlContext.h>
 #include <frm/Input.h>
+#include <frm/Log.h>
 #include <frm/Mesh.h>
 #include <frm/Profiler.h>
 #include <frm/Shader.h>
 #include <frm/Texture.h>
 #include <frm/Window.h>
-#include <frm/ui/Log.h>
 
+#include <apt/platform.h>
+#include <apt/memory.h>
 #include <apt/ArgList.h>
 #include <apt/File.h>
 #include <apt/FileSystem.h>
@@ -25,13 +26,17 @@
 using namespace frm;
 using namespace apt;
 
-static ui::Log    g_log(32, 512);
-static AppSample* g_current;
+static Log        g_Log(100);
+static AppSample* g_Current;
 
 void AppLogCallback(const char* _msg, LogType _type)
 {
-	g_log.addMessage(_msg, _type);
+	g_Log.addMessage(_msg, _type);
 }
+
+static ImU32 kColor_Log[LogType_Count];
+static float kStatusBarLogWidth;
+static int   kStatusBarFlags;
 
 /*******************************************************************************
 
@@ -39,12 +44,32 @@ void AppLogCallback(const char* _msg, LogType _type)
 
 *******************************************************************************/
 
+static void FileChangeNotification(const char* _path, FileSystem::FileAction _action)
+{
+ // some applications (e.g. Photoshop) write to a temporary file and then do a delete/rename, hence we need to check both _Modified and _Created actions
+	if (_action == FileSystem::FileAction_Modified || _action == FileSystem::FileAction_Created) {
+	 // shader
+		if (FileSystem::Matches("*.glsl", _path)) {
+			//APT_LOG_DBG("Reload shader '%s'", _path);
+			Shader::FileModified(_path);
+			return;
+		}
+
+	 // texture
+		if (FileSystem::MatchesMulti({"*.bmp", "*.dds", "*.exr", "*.hdr", "*.png", "*.tga", "*.jpg", "*.gif", "*.psd"}, _path)) {
+			//APT_LOG_DBG("Reload texture '%s'", _path);
+			Texture::FileModified(_path);
+			return;
+		}
+	}
+}
+
 // PUBLIC
 
 AppSample* AppSample::GetCurrent()
 {
-	APT_ASSERT(g_current);
-	return g_current;
+	APT_ASSERT(g_Current);
+	return g_Current;
 }
 
 bool AppSample::init(const apt::ArgList& _args)
@@ -59,11 +84,17 @@ bool AppSample::init(const apt::ArgList& _args)
 	FileSystem::SetRoot(FileSystem::RootType_Common, "common");
 	FileSystem::SetRoot(FileSystem::RootType_Application, (const char*)m_name);
 
+	FileSystem::BeginNotifications(FileSystem::GetRoot(FileSystem::RootType_Common), &FileChangeNotification);
+	FileSystem::BeginNotifications(FileSystem::GetRoot(FileSystem::RootType_Application), &FileChangeNotification);
+	
+	g_Log.setOutput((const char*)String<64>("%s.log", (const char*)m_name)); // need to set after the application root
+	g_Log.addMessage((const char*)String<64>("'%s' %s", (const char*)m_name, Time::GetDateTime().asString()));
+	APT_LOG("System info:\n%s", (const char*)GetPlatformInfoString());
+
  	m_propsPath.setf("%s.json", (const char*)m_name);
 	readProps((const char*)m_propsPath);
 	PropertyGroup* propGroup;
 	APT_VERIFY(propGroup = m_props.findGroup("AppSample"));
-
 
 	ivec2 windowSize     = *propGroup->find("WindowSize")->asInt2();
 	m_window             = Window::Create(windowSize.x, windowSize.y, (const char*)m_name);
@@ -73,7 +104,8 @@ bool AppSample::init(const apt::ArgList& _args)
 	bool glCompatibility = *propGroup->find("GlCompatibility")->asBool();
 	m_glContext          = GlContext::Create(m_window, glVersion.x, glVersion.y, glCompatibility);
 	m_glContext->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
-	FileSystem::MakePath(m_imguiIniPath, "imgui.ini", FileSystem::RootType_Application);
+
+	m_imguiIniPath       = FileSystem::MakePath("imgui.ini", FileSystem::RootType_Application);
 	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
 	if (!ImGui_Init()) {
 		return false;
@@ -82,6 +114,21 @@ bool AppSample::init(const apt::ArgList& _args)
 	ivec2 resolution = *propGroup->find("Resolution")->asInt2();
 	m_resolution.x   = resolution.x == -1 ? m_windowSize.x : resolution.x;
 	m_resolution.y   = resolution.y == -1 ? m_windowSize.y : resolution.y;
+
+	kColor_Log[LogType_Log]   = 0xff999999;
+	kColor_Log[LogType_Error] = 0xff1943ff;
+	kColor_Log[LogType_Debug] = 0xffffaa33;
+	kStatusBarLogWidth        = 0.4f; // fraction of window width
+	kStatusBarFlags           = 0
+		| ImGuiWindowFlags_NoTitleBar
+		| ImGuiWindowFlags_NoResize
+		| ImGuiWindowFlags_NoMove
+		| ImGuiWindowFlags_NoScrollbar
+		| ImGuiWindowFlags_NoScrollWithMouse
+		| ImGuiWindowFlags_NoCollapse
+		| ImGuiWindowFlags_NoSavedSettings
+		| ImGuiWindowFlags_NoBringToFrontOnFocus
+		;
 
  // set ImGui callbacks
  // \todo poll input directly = easier to use proxy devices
@@ -102,12 +149,12 @@ bool AppSample::init(const apt::ArgList& _args)
 	ImGui::SetNextWindowSize(ImVec2(sizeof("Loading") * ImGui::GetFontSize(), ImGui::GetFrameHeightWithSpacing()));
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 	ImGui::Begin(
-		"Loading", 0, 
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoSavedSettings |
-		ImGuiWindowFlags_AlwaysAutoResize
+		"Loading", 0, 0
+		| ImGuiWindowFlags_NoTitleBar
+		| ImGuiWindowFlags_NoResize
+		| ImGuiWindowFlags_NoMove
+		| ImGuiWindowFlags_NoSavedSettings
+		| ImGuiWindowFlags_AlwaysAutoResize
 		);
 	ImGui::Text("Loading");
 	ImGui::End();
@@ -119,6 +166,9 @@ bool AppSample::init(const apt::ArgList& _args)
 
 void AppSample::shutdown()
 {	
+	FileSystem::EndNotifications(FileSystem::GetRoot(FileSystem::RootType_Common));
+	FileSystem::EndNotifications(FileSystem::GetRoot(FileSystem::RootType_Application));
+
 	ImGui_Shutdown();
 	
 	if (m_glContext) {
@@ -139,10 +189,15 @@ bool AppSample::update()
 
 	PROFILER_MARKER_CPU("#AppSample::update");
 
-	if (!m_window->pollEvents()) { // dispatches callbacks to ImGui
-		return false;
+	{	PROFILER_MARKER_CPU("#Poll Events");
+		if (!m_window->pollEvents()) { // dispatches callbacks to ImGui
+			return false;
+		}
 	}
-	// prepare ImGui for next frame
+	{	PROFILER_MARKER_CPU("#Dispatch File Notifications");
+		FileSystem::DispatchNotifications();
+	}
+
 	Window* window = getWindow();
 	ImGui::GetIO().MousePos = ImVec2(-1.0f, -1.0f);
 	if (window->hasFocus()) {
@@ -155,8 +210,11 @@ bool AppSample::update()
 
  // keyboard shortcuts
 	Keyboard* keyboard = Input::GetKeyboard();
-    if (keyboard->wasPressed(Keyboard::Key_Escape) && ImGui::IsKeyDown(Keyboard::Key_LShift)) {
+    if (keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_Escape)) {
 		return false;
+	}
+	if (keyboard->isDown(Keyboard::Key_LCtrl) && keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_P)) {
+		Profiler::SetPause(!Profiler::GetPause());	
 	}
 	if (keyboard->wasPressed(Keyboard::Key_F1)) {
 		m_showMenu = !m_showMenu;
@@ -179,95 +237,12 @@ bool AppSample::update()
 		m_showShaderViewer = !m_showShaderViewer;
 	}
 	
- // AppSample UI
-	const float kStatusBarHeight = ImGui::GetFrameHeightWithSpacing();// + 4.0f;
-	const ImGuiWindowFlags kStatusBarFlags = 
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoScrollbar |
-		ImGuiWindowFlags_NoScrollWithMouse |
-		ImGuiWindowFlags_NoCollapse |
-		ImGuiWindowFlags_NoSavedSettings |
-		ImGuiWindowFlags_NoBringToFrontOnFocus
-			;
 	ImGuiIO& io = ImGui::GetIO();
-	if (m_showMenu) {
-	 // status bar
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2.0f, 2.0f));
-		ImGui::SetNextWindowPos(ImVec2(0.0f, io.DisplaySize.y - kStatusBarHeight));
-		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, kStatusBarHeight));
-		ImGui::Begin("Status Bar", 0, kStatusBarFlags);
-			ImGui::AlignTextToFramePadding();
-			
-			float cpuAvgFrameDuration = (float)Timestamp(Profiler::GetCpuAvgFrameDuration()).asMilliseconds();
-			float gpuAvgFrameDuration = (float)Timestamp(Profiler::GetGpuAvgFrameDuration()).asMilliseconds();
-			ImGui::Text("CPU %-4.2fms GPU %-4.2fms", cpuAvgFrameDuration, gpuAvgFrameDuration);
-			m_showProfilerViewer = ImGui::IsItemClicked() ? !m_showProfilerViewer : m_showProfilerViewer;
-			
-			ImGui::SameLine();
-			float cursorPosX = ImGui::GetCursorPosX();
-			float logPosX = ImGui::GetContentRegionMax().x - ImGui::GetContentRegionAvailWidth() * 0.3f;
-			const ui::Log::Message* logMsg = g_log.getLastErr();
-			if (!logMsg) {
-				logMsg = g_log.getLastDbg();
-			}
-			if (!logMsg) {
-				logMsg = g_log.getLastLog();
-			}
-			ImGui::SetCursorPosX(logPosX);
-			ImGui::TextColored(ImColor(logMsg->m_col), logMsg->m_txt);
-			m_showLog = ImGui::IsItemClicked() ? !m_showLog : m_showLog;
-			
-			ImGui::SameLine();
-			ImGui::SetCursorPosX(cursorPosX);
-
-		 // draw app items
-			drawStatusBar();
-
-		ImGui::End();
-		ImGui::PopStyleVar(2);
-
-		if (m_showLog) {
-			float logPosY = io.DisplaySize.y * 0.7f;
-			ImGui::SetNextWindowPos(ImVec2(logPosX, logPosY));
-			ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x - logPosX, io.DisplaySize.y - logPosY - kStatusBarHeight));
-			ImGui::Begin("Log", 0, 
-				ImGuiWindowFlags_NoTitleBar |
-				ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove |
-				ImGuiWindowFlags_NoSavedSettings
-				);
-			g_log.draw();
-			ImGui::End();
-		}
-	 // main menu
-		if (ImGui::BeginMainMenuBar()) {
-			if (ImGui::BeginMenu("Tools")) {
-				if (ImGui::MenuItem("Properties",     nullptr,    m_showPropertyEditor)) m_showPropertyEditor = !m_showPropertyEditor;
-				if (ImGui::MenuItem("Profiler",       "Ctrl+1",   m_showProfilerViewer)) m_showProfilerViewer = !m_showProfilerViewer;
-				if (ImGui::MenuItem("Texture Viewer", "Ctrl+2",   m_showTextureViewer))  m_showTextureViewer  = !m_showTextureViewer;
-				if (ImGui::MenuItem("Shader Viewer",  "Ctrl+3",   m_showShaderViewer))   m_showShaderViewer   = !m_showShaderViewer;
-				
-				ImGui::EndMenu();
-			}
-			float vsyncWidth = (float)sizeof("Adaptive") * ImGui::GetFontSize();
-			ImGui::PushItemWidth(vsyncWidth);
-			float cursorX = ImGui::GetCursorPosX();
-			ImGui::SetCursorPosX(ImGui::GetContentRegionAvailWidth() - vsyncWidth);
-			if (ImGui::Combo("VSYNC", &m_vsyncMode, "Adaptive\0Off\0On\0On1\0On2\0On3\0")) {
-				getGlContext()->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
-			}
-			ImGui::PopItemWidth();
-			ImGui::SameLine();
-			ImGui::SetCursorPosX(cursorX);
-			
-		 // draw app items
-			drawMainMenuBar();
-			
-			ImGui::EndMainMenuBar();
-		}
+	if (m_showMenu) { 
+		drawMainMenuBar();
+		drawStatusBar();
+	} else {
+		drawNotifications();	 
 	}
 
 	if (m_showPropertyEditor) {
@@ -276,7 +251,7 @@ bool AppSample::update()
 		ImGui::End();
 	}
 	if (m_showProfilerViewer) {
-		Profiler::ShowProfilerViewer(&m_showProfilerViewer);
+		Profiler::DrawUi();
 	}
 	if (m_showTextureViewer) {
 		Texture::ShowTextureViewer(&m_showTextureViewer);
@@ -285,20 +260,24 @@ bool AppSample::update()
 		Shader::ShowShaderViewer(&m_showShaderViewer);
 	}
 	
+	ImGui::BeginInvisible("OverlayWindow", vec2(0.0f), vec2((float)m_windowSize.x, (float)m_windowSize.y - (m_showMenu ? ImGui::GetFrameHeightWithSpacing() : 0.0f)));
+		Profiler::DrawPinnedValues();
+	ImGui::EndInvisible();
 
 	return true;
 }
 
 void AppSample::draw()
 {
-	m_glContext->setFramebufferAndViewport(m_fbDefault);
-	ImGui::GetIO().UserData = m_glContext;
-	ImGui::Render();
-	{	PROFILER_MARKER("#GlContext::present");
+	{	PROFILER_MARKER("#AppSample::draw");
+		m_glContext->setFramebufferAndViewport(m_fbDefault);
+		ImGui::GetIO().UserData = m_glContext;
+		ImGui::Render();
+	}
+	{	PROFILER_MARKER("#VSYNC");
 		m_glContext->setFramebufferAndViewport(0); // this is required if you want to use e.g. fraps
 		m_glContext->present();
 	}
-	++m_frameIndex;
 }
 
 void AppSample::drawNdcQuad()
@@ -313,24 +292,26 @@ AppSample::AppSample(const char* _name)
 	: App()
 	, m_name(_name)
 {
-	APT_ASSERT(g_current == nullptr); // don't support multiple apps (yet)
-	g_current = this;
+	APT_ASSERT(g_Current == nullptr); // don't support multiple apps (yet)
+	g_Current = this;
 
 	PropertyGroup& propGroup = m_props.addGroup("AppSample");
-	//                name                     default         min     max                          storage
-	propGroup.addInt2("Resolution",            ivec2(-1),      1,      32768,                       nullptr);
-	propGroup.addInt2("WindowSize",            ivec2(-1),      1,      32768,                       nullptr);
-	propGroup.addInt ("Vsync Mode",            0,              0,      (int)GlContext::Vsync_On,    &m_vsyncMode);
-	propGroup.addBool("Show Menu",             false,                                               &m_showMenu);
-	propGroup.addBool("Show Log",              false,                                               &m_showLog);
-	propGroup.addBool("Show Property Editor",  false,                                               &m_showPropertyEditor);
-	propGroup.addBool("Show Profiler",         false,                                               &m_showProfilerViewer);
-	propGroup.addBool("Show Texture Viewer",   false,                                               &m_showTextureViewer);
-	propGroup.addBool("Show Shader Viewer",    false,                                               &m_showShaderViewer);
-	propGroup.addPath("Font",                  "",                                                  nullptr);
-
-	propGroup.addInt2("GlVersion",             ivec2(-1, -1), -1,      99);
-	propGroup.addBool("GlCompatibility",       false);
+	//                 name                     default         min     max                          storage
+	propGroup.addInt2 ("Resolution",            ivec2(-1),      1,      32768,                       nullptr);
+	propGroup.addInt2 ("WindowSize",            ivec2(-1),      1,      32768,                       nullptr);
+	propGroup.addInt2 ("GlVersion",             ivec2(-1, -1), -1,      99,                          nullptr);
+	propGroup.addBool ("GlCompatibility",       false,                                               nullptr);
+	propGroup.addInt  ("VsyncMode",             0,              0,      GlContext::Vsync_On,         &m_vsyncMode);
+	propGroup.addBool ("ShowMenu",              false,                                               &m_showMenu);
+	propGroup.addBool ("ShowLog",               false,                                               &m_showLog);
+	propGroup.addBool ("ShowLogNotifications",  false,                                               &m_showLogNotifications);
+	propGroup.addBool ("ShowPropertyEditor",    false,                                               &m_showPropertyEditor);
+	propGroup.addBool ("ShowProfiler",          false,                                               &m_showProfilerViewer);
+	propGroup.addBool ("ShowTextureViewer",     false,                                               &m_showTextureViewer);
+	propGroup.addBool ("ShowShaderViewer",      false,                                               &m_showShaderViewer);
+	propGroup.addPath ("Font",                  "",                                                  nullptr);
+	propGroup.addFloat("FontSize",              13.0f,          4.0f,  64.0f,                        nullptr);
+	propGroup.addInt  ("FontOversample",        1,              1,     8,                            nullptr);
 }
 
 AppSample::~AppSample()
@@ -361,6 +342,135 @@ bool AppSample::writeProps(const char* _path, apt::FileSystem::RootType _rootHin
 
 // PRIVATE
 
+void AppSample::drawMainMenuBar()
+{
+	if (ImGui::BeginMainMenuBar()) {
+		if (ImGui::BeginMenu("Tools")) {
+			if (ImGui::MenuItem("Properties",     nullptr,    m_showPropertyEditor)) m_showPropertyEditor = !m_showPropertyEditor;
+			if (ImGui::MenuItem("Profiler",       "Ctrl+1",   m_showProfilerViewer)) m_showProfilerViewer = !m_showProfilerViewer;
+			if (ImGui::MenuItem("Texture Viewer", "Ctrl+2",   m_showTextureViewer))  m_showTextureViewer  = !m_showTextureViewer;
+			if (ImGui::MenuItem("Shader Viewer",  "Ctrl+3",   m_showShaderViewer))   m_showShaderViewer   = !m_showShaderViewer;
+			
+			ImGui::EndMenu();
+		}
+		float vsyncWidth = (float)sizeof("Adaptive") * ImGui::GetFontSize();
+		ImGui::PushItemWidth(vsyncWidth);
+		float cursorX = ImGui::GetCursorPosX();
+		ImGui::SetCursorPosX(ImGui::GetContentRegionAvailWidth() - vsyncWidth);
+		if (ImGui::Combo("VSYNC", &m_vsyncMode, "Adaptive\0Off\0On\0On1\0On2\0On3\0")) {
+			getGlContext()->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
+		}
+		ImGui::PopItemWidth();
+		ImGui::SetCursorPosX(cursorX);
+			
+		ImGui::EndMainMenuBar();
+	}
+}
+
+void AppSample::drawStatusBar()
+{
+	auto& io = ImGui::GetIO();
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(ImGui::GetStyle().WindowPadding.x, 2.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0,0));
+	ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, ImGui::GetFrameHeightWithSpacing()));
+	ImGui::SetNextWindowPos(ImVec2(0.0f, io.DisplaySize.y - ImGui::GetFrameHeightWithSpacing()));
+	ImGui::Begin("##StatusBar", 0, kStatusBarFlags);
+		ImGui::AlignTextToFramePadding();
+		
+		float logPosX = io.DisplaySize.x - io.DisplaySize.x * kStatusBarLogWidth + ImGui::GetStyle().WindowPadding.x;
+		float cursorPosX = ImGui::GetCursorPosX();
+		const Log::Message* logMsg = g_Log.getLastMessage();
+		if (logMsg) {
+			ImGui::SetCursorPosX(logPosX);
+			ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(kColor_Log[logMsg->m_type]), (const char*)logMsg->m_str);
+			if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered() && ImGui::GetMousePos().x > logPosX) {
+				m_showLog = !m_showLog;
+			}
+			ImGui::SameLine();
+			ImGui::SetCursorPosX(cursorPosX);
+		}
+		
+	ImGui::End();
+	ImGui::PopStyleVar(3);
+	
+	if (m_showLog) {
+		float logPosY = io.DisplaySize.y * 0.7f;
+		ImGui::SetNextWindowPos(ImVec2(logPosX, logPosY));
+		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x - logPosX, io.DisplaySize.y - logPosY - ImGui::GetFrameHeightWithSpacing()));
+		ImGui::Begin("Log", 0, 0
+			| ImGuiWindowFlags_NoTitleBar
+			| ImGuiWindowFlags_NoResize
+			| ImGuiWindowFlags_NoMove
+			| ImGuiWindowFlags_NoSavedSettings
+			);
+	
+			auto appTime = Time::GetApplicationElapsed().getRaw();
+			auto msgTime = APT_DATA_TYPE_MAX(sint64);
+			for (int i = 0; i < LogType_Count; ++i) {
+				if (g_Log.getLastMessage(i)) {
+					msgTime = APT_MIN(msgTime, appTime - g_Log.getLastMessage(i)->m_time.getRaw());
+				}
+			}
+			bool autoScroll = ImGui::IsWindowAppearing() || Timestamp(msgTime).asSeconds() < 0.1;
+			
+			for (int i = 0, n = g_Log.getMessageCount(); i < n; ++i) {
+				auto msg = g_Log.getMessage(i);
+				ImGui::PushStyleColor(ImGuiCol_Text, kColor_Log[msg->m_type]);
+					ImGui::TextWrapped((const char*)msg->m_str);
+				ImGui::PopStyleColor();
+				
+				if (autoScroll && msg == g_Log.getLastMessage(LogType_Error)) {
+					ImGui::SetScrollHere();
+					autoScroll = false;
+				}
+			}
+			if (autoScroll) {
+				ImGui::SetScrollHere();
+			}
+			
+			
+		ImGui::End();
+	}
+}
+
+void AppSample::drawNotifications()
+{
+	if (!m_showLogNotifications) {
+		return;
+	}
+
+	auto& io = ImGui::GetIO();
+
+ // error/debug log notifications
+	auto logMsg = g_Log.getLastMessage();
+	if (logMsg) {
+		float logAge = (float)(Time::GetApplicationElapsed() - logMsg->m_time).asSeconds();
+		if (logAge < 3.0f) {
+			float logAlpha = 1.0f;
+			if (logAge > 2.5f) {
+				logAlpha = 1.0f - (logAge - 2.5f) / 0.5f;
+			}
+			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImGui::GetColorU32(ImGuiCol_WindowBg, 0.8f * logAlpha));
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(ImGui::GetStyle().WindowPadding.x, 2.0f));
+			ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - io.DisplaySize.x * kStatusBarLogWidth, io.DisplaySize.y - ImGui::GetFrameHeightWithSpacing()));
+			ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * kStatusBarLogWidth, ImGui::GetFrameHeightWithSpacing()));
+			ImGui::Begin("##Notifications", 0, kStatusBarFlags | ImGuiWindowFlags_NoFocusOnAppearing);
+				ImGui::AlignTextToFramePadding();
+				ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(IM_COLOR_ALPHA(kColor_Log[logMsg->m_type], logAlpha)), (const char*)logMsg->m_str);
+				if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered()) {
+					m_showMenu = true;
+					m_showLog = true;
+				}
+			ImGui::End();
+			ImGui::PopStyleVar(2);
+			ImGui::PopStyleColor();
+		}
+	}
+}
+
 /*******************************************************************************
 
                                    ImGui
@@ -378,6 +488,9 @@ bool AppSample::ImGui_Init()
 {
 	auto  app = AppSample::GetCurrent();
 	auto& io  = ImGui::GetIO();
+
+	io.MemAllocFn = apt::internal::malloc;
+	io.MemFreeFn  = apt::internal::free;
 	
  // mesh
  	if (g_msImGui) {
@@ -414,23 +527,29 @@ bool AppSample::ImGui_Init()
 	g_txRadar = Texture::Create("textures/radar.tga");
 	g_txRadar->setName("#TextureViewer_radar");
 
- // fonts texture
+ // font
+	auto&       props          = app->getProperties();
+	const auto& fontPath       = *props.findProperty("Font")->asString();
+	float       fontSize       = *props.findProperty("FontSize")->asFloat();
+	int         fontOversample = *props.findProperty("FontOversample")->asInt();
+	ImFontConfig fontCfg;
+	fontCfg.OversampleH = fontCfg.OversampleV = fontOversample;
+	fontCfg.SizePixels  = fontSize;
+	fontCfg.PixelSnapH  = true;
+	if (fontPath.isEmpty()) {
+		io.Fonts->AddFontDefault(&fontCfg);
+	} else {
+		io.Fonts->AddFontFromFileTTF((const char*)fontPath, fontSize, &fontCfg);
+	}
+	fontCfg.MergeMode = true;
+	const ImWchar glyphRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+	io.Fonts->AddFontFromFileTTF("common/fonts/" FONT_ICON_FILE_NAME_FA, fontSize, &fontCfg, glyphRanges);
+	
 	if (g_txImGui) {
 		Texture::Release(g_txImGui);
 	}
 	unsigned char* buf;
 	int txX, txY;
-	ImFontConfig fontCfg;
-	fontCfg.OversampleH = fontCfg.OversampleV = 1;
-	auto fontProp = app->getProperties().findProperty("Font");
-	if (fontProp && !fontProp->asString()->isEmpty()) {
-		io.Fonts->AddFontFromFileTTF(fontProp->asString()->c_str(), 13.0f, &fontCfg);
-	} else {
-		io.Fonts->AddFontDefault();
-	}
-	fontCfg.MergeMode = true;
-	const ImWchar glyphRanges[] = { 0xf000, 0xf2e0, 0 };
-	io.Fonts->AddFontFromFileTTF("common/fonts/fontawesome-webfont.ttf", 13.0f, &fontCfg, glyphRanges);
 	io.Fonts->GetTexDataAsAlpha8(&buf, &txX, &txY);
 	g_txImGui = Texture::Create2d(txX, txY, GL_R8);
 	g_txImGui->setFilter(GL_NEAREST);
@@ -548,6 +667,8 @@ void AppSample::ImGui_Shutdown()
 
 void AppSample::ImGui_Update(AppSample* _app)
 {
+	PROFILER_MARKER_CPU("#ImGui_Update");
+
 	ImGuiIO& io = ImGui::GetIO();
 
  // extract keyboard/mouse input
@@ -590,7 +711,7 @@ void AppSample::ImGui_Update(AppSample* _app)
 
 void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 {
-	PROFILER_MARKER_CPU("#ImGui::Render");
+	PROFILER_MARKER("#ImGui_RenderDrawLists");
 
 	ImGuiIO& io = ImGui::GetIO();
 	GlContext* ctx = (GlContext*)io.UserData;
