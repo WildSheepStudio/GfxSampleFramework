@@ -27,9 +27,6 @@ public:
 	virtual void        shutdown() override;
 	virtual bool        update() override;
 	virtual void        draw();
-
-	virtual void        drawMainMenuBar()             {}
-	virtual void        drawStatusBar()               {}	
 	void                drawNdcQuad();
 	
 	// Get/set the framebuffer to which UI/overlays are drawn (a null ptr means the context backbuffer).
@@ -44,11 +41,8 @@ public:
 	const Window*       getWindow() const             { return m_window; }
 	GlContext*          getGlContext()                { return m_glContext; }
 	const GlContext*    getGlContext() const          { return m_glContext; }
-	uint64              getFrameIndex() const         { return m_frameIndex; }
 
-protected:		
-	typedef apt::FileSystem::PathStr PathStr;
-
+protected:
 	AppSample(const char* _title);
 	virtual ~AppSample();
 
@@ -58,27 +52,29 @@ protected:
 	bool readProps(const char* _path, apt::FileSystem::RootType _rootHint = apt::FileSystem::RootType_Application);
 	bool writeProps(const char* _path, apt::FileSystem::RootType _rootHint = apt::FileSystem::RootType_Application);
 
-	ivec2 m_resolution;
-	ivec2 m_windowSize;
+	ivec2  m_resolution;
+	ivec2  m_windowSize;
+	int    m_vsyncMode;
+	bool   m_showMenu;
+	bool   m_showLog;
+	bool   m_showLogNotifications;
+	bool   m_showPropertyEditor;
+	bool   m_showProfilerViewer;
+	bool   m_showTextureViewer;
+	bool   m_showShaderViewer;
 
 private:
 	apt::String<32>    m_name;
 	Window*            m_window    = nullptr;
 	GlContext*         m_glContext = nullptr;
 	const Framebuffer* m_fbDefault = nullptr; // where to draw overlays, or default backbuffer if 0
+	apt::PathStr       m_propsPath;
 
-	apt::FileSystem::PathStr m_propsPath;
+	void drawMainMenuBar();
+	void drawStatusBar();
+	void drawNotifications();
 
-	int    m_vsyncMode             = 1;//GlContext::Vsync_On;
-	bool   m_showMenu              = true;
-	bool   m_showLog               = false;
-	bool   m_showPropertyEditor    = false;
-	bool   m_showProfilerViewer    = false;
-	bool   m_showTextureViewer     = false;
-	bool   m_showShaderViewer      = false;
-	uint64 m_frameIndex            = false;
-
-	apt::FileSystem::PathStr m_imguiIniPath;
+	apt::PathStr m_imguiIniPath;
 	static bool ImGui_Init();
 	static void ImGui_InitStyle();
 	static void ImGui_Shutdown();

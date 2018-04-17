@@ -1,7 +1,6 @@
 #include <frm/Texture.h>
 
 #include <frm/gl.h>
-#include <frm/icon_fa.h>
 #include <frm/Framebuffer.h>
 #include <frm/GlContext.h>
 #include <frm/Resource.h>
@@ -135,6 +134,8 @@ struct TextureViewer
 	
 		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetFrameHeightWithSpacing()), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2), ImGuiCond_FirstUseEver);
+		
+		// \hack TerraFormer
 		//if (!ImGui::Begin("Texture Viewer", _open_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
 		//	ImGui::End();
 		//	return; // window collapsed, early-out
@@ -157,9 +158,9 @@ struct TextureViewer
 			}
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_FLOPPY_O " Load")) {
-				FileSystem::PathStr pth;
+				PathStr pth;
 				if (FileSystem::PlatformSelect(pth)) {
-					FileSystem::StripRoot(pth, (const char*)pth);
+					pth = FileSystem::StripRoot((const char*)pth);
 					Texture::Create((const char*)pth);
 				}
 			}
@@ -218,7 +219,7 @@ struct TextureViewer
 			}
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_FLOPPY_O " Save")) {
-				FileSystem::PathStr pth = tx.getPath();
+				PathStr pth = tx.getPath();
 				if (FileSystem::PlatformSelect(pth, { "*.bmp", "*.dds", "*.exr", "*.hdr", "*.png", "*.tga" })) {
 					Image* img = Texture::CreateImage(&tx);
 					Image::Write(*img, (const char*)pth);
@@ -232,9 +233,9 @@ struct TextureViewer
 				}
 				ImGui::SameLine();
 				if (ImGui::Button(ICON_FA_FLOPPY_O " Replace")) {
-					FileSystem::PathStr pth;
+					PathStr pth;
 					if (FileSystem::PlatformSelect(pth)) {
-						FileSystem::StripRoot(pth, (const char*)pth);
+						pth = FileSystem::StripRoot((const char*)pth);
 						tx.setPath((const char*)pth);
 						tx.reload();
 						txView.reset();
@@ -393,6 +394,7 @@ struct TextureViewer
 			ImGui::Columns(1);
 		}
 	
+		// \hack TerraFormer
 		//ImGui::End();
 	}
 };
@@ -646,6 +648,16 @@ Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 void Texture::Destroy(Texture*& _inst_)
 {
 	delete _inst_;
+}
+
+void Texture::FileModified(const char* _path)
+{
+	for (int i = 0, n = GetInstanceCount(); i < n; ++i) {
+		auto texture = GetInstance(i);
+		if (texture->m_path == _path) {
+			texture->reload();
+		}
+	}
 }
 
 Image* Texture::CreateImage(const Texture* _tx)

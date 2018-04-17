@@ -43,6 +43,7 @@ public:
 	// Access source code dependencies.
 	int         getDependencyCount(GLenum _stage) const;
 	const char* getDependency(GLenum _stage, int _i) const;
+	bool        hasDependency(const char* _path) const;
 
 	// Set the local size (compute only).
 	void         setLocalSize(int _x, int _y = 1, int _z = 1);
@@ -103,7 +104,7 @@ private:
 		bool isEnabled() const;
 		bool hasDependency(const char* _path) const;
 		bool loadSource(const ShaderDesc& _shaderDesc, const char* _path = nullptr);
-		void logInfo() const;
+		apt::String<0> getLogInfo() const;
 	};
 	
 	static VersionStr           s_defaultVersion;
@@ -126,10 +127,13 @@ public:
 	static Shader* CreateVsFs(const char* _vsPath, const char* _fsPath, const char* _defines = 0);
 	static Shader* CreateVsGsFs(const char* _vsPath, const char* _gsPath, const char* _fsPath, const char* _defines = 0);
 	static Shader* CreateCs(const char* _csPath, int _localX = 1, int _localY = 1, int _localZ = 1, const char* _defines = 0);
-
 	static void    Destroy(Shader*& _inst_);
 
+	// Reload any shaders dependent on _path.
+	static void    FileModified(const char* _path);
+
 	static void    ShowShaderViewer(bool* _open_);
+
 
 	bool load() { return reload(); }
 
