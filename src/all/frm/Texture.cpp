@@ -331,8 +331,9 @@ struct TextureViewer
 			ImGui::TextColored(kColorTxInfo, "Type:   %s",       GlEnumStr(tx.getTarget()));
 			ImGui::TextColored(kColorTxInfo, "Format: %s",       GlEnumStr(tx.getFormat()));
 			ImGui::TextColored(kColorTxInfo, "Size:   %dx%dx%d", tx.getWidth(), tx.getHeight(), tx.getDepth());
-			ImGui::TextColored(kColorTxInfo, "Array:  %d",       tx.getArrayCount());
-			ImGui::TextColored(kColorTxInfo, "Mips:   %d",       tx.getMipCount());	
+			ImGui::TextColored(kColorTxInfo, "Array:  %d", tx.getArrayCount());
+			ImGui::TextColored(kColorTxInfo, "Mips:   %d", tx.getMipCount());
+			ImGui::TextColored(kColorTxInfo, "Used:   %d", tx.getRefCount());
 			
 		 // filter mode
 			ImGui::Spacing(); ImGui::Spacing();
