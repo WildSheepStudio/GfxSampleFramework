@@ -542,9 +542,9 @@ bool AppSample::ImGui_Init()
 	ImFontConfig fontCfg;
 	fontCfg.OversampleH = fontCfg.OversampleV = fontOversample;
 	fontCfg.SizePixels  = fontSize;
-	if (*props.findProperty("FontEnableScaling")->asBool()) {
-		fontCfg.SizePixels = Ceil(fontCfg.SizePixels * app->getWindow()->getScaling());
-	}
+	//if (*props.findProperty("FontEnableScaling")->asBool()) {
+	//	fontCfg.SizePixels = Ceil(fontCfg.SizePixels * app->getWindow()->getScaling());
+	//}
 	fontCfg.PixelSnapH  = true;
 	if (fontPath.isEmpty()) {
 		io.Fonts->AddFontDefault(&fontCfg);
