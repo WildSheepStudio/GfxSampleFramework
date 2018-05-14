@@ -315,7 +315,7 @@ AppSample::AppSample(const char* _name)
 	propGroup.addBool ("ShowProfiler",          false,                                               &m_showProfilerViewer);
 	propGroup.addBool ("ShowTextureViewer",     false,                                               &m_showTextureViewer);
 	propGroup.addBool ("ShowShaderViewer",      false,                                               &m_showShaderViewer);
-	propGroup.addPath ("Font",                  "",                                                  nullptr);
+	propGroup.addPath ("Font",                  "TerraFormer/fonts/calibri.ttf",                     nullptr);
 	propGroup.addFloat("FontSize",              13.0f,          4.0f,  64.0f,                        nullptr);
 	propGroup.addInt  ("FontOversample",        1,              1,     8,                            nullptr);
 	propGroup.addBool ("FontEnableScaling",     false,                                               nullptr);
