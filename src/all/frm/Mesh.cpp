@@ -52,6 +52,9 @@ Mesh* Mesh::Create(const char* _path)
 
 Mesh* Mesh::Create(const MeshData& _data)
 {
+	if (&_data == nullptr)
+		return nullptr;
+
 	Id id = _data.getHash();
 	Mesh* ret = Find(id);
 	if (!ret) {
