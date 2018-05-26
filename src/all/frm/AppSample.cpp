@@ -93,16 +93,19 @@ bool AppSample::init(const apt::ArgList& _args)
 
  	m_propsPath.setf("%s.json", (const char*)m_name);
 	readProps((const char*)m_propsPath);
-	PropertyGroup* propGroup;
-	APT_VERIFY(propGroup = m_props.findGroup("AppSample"));
 
-	ivec2 windowSize     = *propGroup->find("WindowSize")->asInt2();
+	ivec2 windowSize     = *m_props.findProperty("WindowSize")->asInt2();
 	m_window             = Window::Create(windowSize.x, windowSize.y, (const char*)m_name);
 	m_windowSize         = ivec2(m_window->getWidth(), m_window->getHeight());
 		
-	ivec2 glVersion      = *propGroup->find("GlVersion")->asInt2();
-	bool glCompatibility = *propGroup->find("GlCompatibility")->asBool();
-	m_glContext          = GlContext::Create(m_window, glVersion.x, glVersion.y, glCompatibility);
+	ivec2 glVersion      = *m_props.findProperty("GlVersion")->asInt2();
+	bool glCompatibility = *m_props.findProperty("GlCompatibility")->asBool();
+	bool glDebug         = *m_props.findProperty("GlDebug")->asBool();
+	GlContext::CreateFlags ctxFlags = 0
+		| (glCompatibility ? GlContext::CreateFlags_Compatibility : 0)
+		| (glDebug         ? GlContext::CreateFlags_Debug         : 0)
+		;
+	m_glContext          = GlContext::Create(m_window, glVersion.x, glVersion.y, ctxFlags);
 	m_glContext->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
 
 	m_imguiIniPath       = FileSystem::MakePath("imgui.ini", FileSystem::RootType_Application);
@@ -111,7 +114,7 @@ bool AppSample::init(const apt::ArgList& _args)
 		return false;
 	}
 
-	ivec2 resolution = *propGroup->find("Resolution")->asInt2();
+	ivec2 resolution = *m_props.findProperty("Resolution")->asInt2();
 	m_resolution.x   = resolution.x == -1 ? m_windowSize.x : resolution.x;
 	m_resolution.y   = resolution.y == -1 ? m_windowSize.y : resolution.y;
 
@@ -139,13 +142,7 @@ bool AppSample::init(const apt::ArgList& _args)
 	cb.m_OnChar          = ImGui_OnChar;
 	m_window->setCallbacks(cb);
 
- // \hack TerraFormer - don't show the window if in 'silent' mode
-	//m_window->show();
-	apt::ArgList args = _args;
-	const apt::Arg& argShow = args.getArg(0);
-	if (args.getArgCount() == 0 || strcmp(argShow.getValue().asString(), "visibleMode") == 0) {
-		m_window->show();
-	}
+	m_window->show();
 
  // splash screen
 	APT_VERIFY(AppSample::update());
@@ -187,6 +184,8 @@ void AppSample::shutdown()
 	writeProps((const char*)m_propsPath);
 
 	App::shutdown();
+
+	apt::SetLogCallback(nullptr);
 }
 
 bool AppSample::update()
@@ -219,7 +218,7 @@ bool AppSample::update()
     if (keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_Escape)) {
 		return false;
 	}
-	if (keyboard->wasPressed(Keyboard::Key_Pause)) {
+	if (keyboard->isDown(Keyboard::Key_LCtrl) && keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_P)) {
 		Profiler::SetPause(!Profiler::GetPause());	
 	}
 	if (keyboard->wasPressed(Keyboard::Key_F1)) {
@@ -301,24 +300,30 @@ AppSample::AppSample(const char* _name)
 	APT_ASSERT(g_Current == nullptr); // don't support multiple apps (yet)
 	g_Current = this;
 
-	PropertyGroup& propGroup = m_props.addGroup("AppSample");
+	PropertyGroup& propGroupAppSample = m_props.addGroup("AppSample");
 	//                 name                     default         min     max                          storage
-	propGroup.addInt2 ("Resolution",            ivec2(-1),      1,      32768,                       nullptr);
-	propGroup.addInt2 ("WindowSize",            ivec2(-1),      1,      32768,                       nullptr);
-	propGroup.addInt2 ("GlVersion",             ivec2(-1, -1), -1,      99,                          nullptr);
-	propGroup.addBool ("GlCompatibility",       false,                                               nullptr);
-	propGroup.addInt  ("VsyncMode",             0,              0,      GlContext::Vsync_On,         &m_vsyncMode);
-	propGroup.addBool ("ShowMenu",              false,                                               &m_showMenu);
-	propGroup.addBool ("ShowLog",               false,                                               &m_showLog);
-	propGroup.addBool ("ShowLogNotifications",  false,                                               &m_showLogNotifications);
-	propGroup.addBool ("ShowPropertyEditor",    false,                                               &m_showPropertyEditor);
-	propGroup.addBool ("ShowProfiler",          false,                                               &m_showProfilerViewer);
-	propGroup.addBool ("ShowTextureViewer",     false,                                               &m_showTextureViewer);
-	propGroup.addBool ("ShowShaderViewer",      false,                                               &m_showShaderViewer);
-	propGroup.addPath ("Font",                  "TerraFormer/fonts/calibri.ttf",                     nullptr);
-	propGroup.addFloat("FontSize",              13.0f,          4.0f,  64.0f,                        nullptr);
-	propGroup.addInt  ("FontOversample",        1,              1,     8,                            nullptr);
-	propGroup.addBool ("FontEnableScaling",     false,                                               nullptr);
+	propGroupAppSample.addInt2 ("Resolution",            ivec2(-1),      1,      32768,                       nullptr);
+	propGroupAppSample.addInt2 ("WindowSize",            ivec2(-1),      1,      32768,                       nullptr);
+	propGroupAppSample.addInt  ("VsyncMode",             0,              0,      GlContext::Vsync_On,         &m_vsyncMode);
+	propGroupAppSample.addBool ("ShowMenu",              false,                                               &m_showMenu);
+	propGroupAppSample.addBool ("ShowLog",               false,                                               &m_showLog);
+	propGroupAppSample.addBool ("ShowLogNotifications",  false,                                               &m_showLogNotifications);
+	propGroupAppSample.addBool ("ShowPropertyEditor",    false,                                               &m_showPropertyEditor);
+	propGroupAppSample.addBool ("ShowProfiler",          false,                                               &m_showProfilerViewer);
+	propGroupAppSample.addBool ("ShowTextureViewer",     false,                                               &m_showTextureViewer);
+	propGroupAppSample.addBool ("ShowShaderViewer",      false,                                               &m_showShaderViewer);
+
+	PropertyGroup& propGroupFont = m_props.addGroup("Font");
+	propGroupFont.addPath      ("Font",                  "",                                                  nullptr);
+	propGroupFont.addFloat     ("FontSize",              13.0f,          4.0f,  64.0f,                        nullptr);
+	propGroupFont.addInt       ("FontOversample",        1,              1,     8,                            nullptr);
+	propGroupFont.addBool      ("FontEnableScaling",     false,                                               nullptr);
+	
+	PropertyGroup& propGroupGlContext = m_props.addGroup("GlContext");
+	propGroupGlContext.addInt2 ("GlVersion",             ivec2(-1, -1), -1,      99,                          nullptr);
+	propGroupGlContext.addBool ("GlCompatibility",       false,                                               nullptr);
+	propGroupGlContext.addBool ("GlDebug",               false,                                               nullptr);
+	
 }
 
 AppSample::~AppSample()
@@ -506,7 +511,7 @@ bool AppSample::ImGui_Init()
 	MeshDesc meshDesc(MeshDesc::Primitive_Triangles);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 2);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType_Float32, 2);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    DataType_Uint8N,  4);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    DataType_Uint32,  1);
 	APT_ASSERT(meshDesc.getVertexSize() == sizeof(ImDrawVert));
 	g_msImGui = Mesh::Create(meshDesc);
 
@@ -542,9 +547,9 @@ bool AppSample::ImGui_Init()
 	ImFontConfig fontCfg;
 	fontCfg.OversampleH = fontCfg.OversampleV = fontOversample;
 	fontCfg.SizePixels  = fontSize;
-	//if (*props.findProperty("FontEnableScaling")->asBool()) {
-	//	fontCfg.SizePixels = Ceil(fontCfg.SizePixels * app->getWindow()->getScaling());
-	//}
+	if (*props.findProperty("FontEnableScaling")->asBool()) {
+		fontCfg.SizePixels = Ceil(fontCfg.SizePixels * app->getWindow()->getScaling());
+	}
 	fontCfg.PixelSnapH  = true;
 	if (fontPath.isEmpty()) {
 		io.Fonts->AddFontDefault(&fontCfg);
@@ -565,7 +570,7 @@ bool AppSample::ImGui_Init()
 	g_txImGui->setFilter(GL_NEAREST);
 	g_txImGui->setName("#ImGuiFont");
 	g_txImGui->setData(buf, GL_RED, GL_UNSIGNED_BYTE);
-	g_txViewImGui = TextureView(g_txImGui);
+	g_txViewImGui = TextureView(g_txImGui, g_shImGui);
 	io.Fonts->TexID = (void*)&g_txViewImGui; // need a TextureView ptr for rendering
 
 	
@@ -701,10 +706,9 @@ void AppSample::ImGui_Update(AppSample* _app)
 	if (io.WantCaptureKeyboard) {
 		Input::ResetKeyboard();
 	}
-	// \hack TerraFormer - the app always captures the mouse for some reason and this causes Im3d not to function correctly
-	//if (io.WantCaptureMouse) {
-	//	Input::ResetMouse();
-	//}
+	if (io.WantCaptureMouse) {
+		Input::ResetMouse();
+	}
 
 
 	io.ImeWindowHandle = _app->getWindow()->getHandle();
@@ -737,12 +741,12 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 	}
     _drawData->ScaleClipRects(io.DisplayFramebufferScale);
 
-    glAssert(glEnable(GL_BLEND));
+	FRM_GL_ENABLE(GL_BLEND,        true);
+	FRM_GL_ENABLE(GL_SCISSOR_TEST, true);
+	FRM_GL_ENABLE(GL_CULL_FACE,    false);
+	FRM_GL_ENABLE(GL_DEPTH_TEST,   false);
     glAssert(glBlendEquation(GL_FUNC_ADD));
     glAssert(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-    glAssert(glDisable(GL_CULL_FACE));
-    glAssert(glDisable(GL_DEPTH_TEST));
-    glAssert(glEnable(GL_SCISSOR_TEST));
     glAssert(glActiveTexture(GL_TEXTURE0));
 
 	glAssert(glViewport(0, 0, (GLsizei)fbX, (GLsizei)fbY));
@@ -752,7 +756,6 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 		vec4( 0.0f,                  0.0f,                   1.0f, 0.0f),
 		vec4(-1.0f,                  1.0f,                   0.0f, 1.0f)
 		);
-	ctx->setMesh(g_msImGui);
 
 	for (int i = 0; i < _drawData->CmdListsCount; ++i) {
 		const ImDrawList* drawList = _drawData->CmdLists[i];
@@ -769,13 +772,13 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 				pcmd->UserCallback(drawList, pcmd);
 			} else {
 				TextureView* txView = (TextureView*)pcmd->TextureId;
-				const Texture* tx = txView->m_texture;
-				Shader* sh = g_shImGui;
-				if (txView != &g_txViewImGui) {
-				 // select a shader based on the texture type
-					sh = g_shTextureView[internal::TextureTargetToIndex(tx->getTarget())];
+				const Texture* tx   = txView->m_texture;
+				Shader* sh          = txView->m_shader;
+				if (!sh) {
+					sh = g_shTextureView[internal::TextureTargetToIndex(tx->getTarget())]; // select a default shader based on the texture type
 				}
-				ctx->setShader(sh);
+				ctx->setShader  (sh);
+				ctx->setMesh    (g_msImGui);
 				ctx->setUniform ("uProjMatrix", ortho);
 				ctx->setUniform ("uBiasUv",     txView->getNormalizedOffset());
 				ctx->setUniform ("uScaleUv",    txView->getNormalizedSize());
@@ -793,8 +796,6 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 		}
 	}
 
-	glAssert(glDisable(GL_SCISSOR_TEST));
-	glAssert(glDisable(GL_BLEND));
 	ctx->setShader(0);
 }
 

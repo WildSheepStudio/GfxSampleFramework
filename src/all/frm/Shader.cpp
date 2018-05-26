@@ -3,6 +3,7 @@
 #include <frm/def.h>
 #include <frm/gl.h>
 #include <frm/GlContext.h>
+#include <frm/Texture.h>
 
 #include <apt/hash.h>
 #include <apt/log.h>
@@ -835,6 +836,19 @@ bool Shader::setLocalSize(int _x, int _y, int _z)
 	APT_ASSERT(m_desc.hasStage(GL_COMPUTE_SHADER));
 	m_desc.setLocalSize(_x, _y, _z);
 	return loadStage(internal::ShaderStageToIndex(GL_COMPUTE_SHADER), false);
+}
+
+ivec3 Shader::getDispatchSize(int _outWidth, int _outHeight, int _outDepth)
+{
+	ivec3 localSize = getLocalSize();
+	return APT_MAX((ivec3(_outWidth, _outHeight, _outDepth) + localSize - 1) / localSize, ivec3(1));
+}
+
+ivec3 Shader::getDispatchSize(const Texture* _tx, int _level)
+{
+	ivec3 localSize = getLocalSize();
+	ivec3 ret = APT_MAX(ivec3(_tx->getWidth() >> _level, _tx->getHeight() >> _level, _tx->getDepth() >> _level), ivec3(1));
+	return APT_MAX((ret + localSize - 1) / localSize, ivec3(1));
 }
 
 // PRIVATE

@@ -43,7 +43,7 @@ static ImVec2 ResolveSize(const ImVec2& _size, float _aspect = -1.0f)
 }
 
 // Common logic for handling ImGuiCond. once_ should be init to false.
-static bool ResolveCond(ImGuiCond& _cond_, bool& once_)
+static bool ResolveCond(ImGuiCond& _cond_, bool& _once_)
 {
 	bool ret = false;
 	if (_cond_) {
@@ -52,8 +52,8 @@ static bool ResolveCond(ImGuiCond& _cond_, bool& once_)
 		} else if (GetCurrentWindow()->Appearing && GetFlag(_cond_, ImGuiCond_Appearing)) {
 			ret = true;
 		} else {
-			if (!once_) {
-				once_ = true;
+			if (!_once_) {
+				_once_ = true;
 				ret = true;
 			}
 		}
@@ -270,6 +270,14 @@ ImVec2 ToVirtual(const ImVec2& _windowPos, const State* _state)
 	return ret;
 }
 
+ImVec2 ToVirtualScale(const ImVec2& _windowScale, const State* _state)
+{
+	const ImRect& rectV = _state->m_subrectV;
+	const ImRect& rectW = _state->m_rectW;
+	ImVec2 ret = _windowScale / rectW.GetSize();
+	return ret * rectV.GetSize();
+}
+
 ImVec2 ToWindow(const ImVec2& _virtualPos, const State* _state)
 {
 	const ImRect& rectV = _state->m_subrectV;
@@ -277,6 +285,14 @@ ImVec2 ToWindow(const ImVec2& _virtualPos, const State* _state)
 	ImVec2 ret = (_virtualPos - rectV.Min) / rectV.GetSize();
 	ret        = rectW.Min + ret * rectW.GetSize();
 	return ImFloor(ret);
+}
+
+ImVec2 ToWindowScale(const ImVec2& _virtualScale, const State* _state)
+{
+	const ImRect& rectV = _state->m_subrectV;
+	const ImRect& rectW = _state->m_rectW;
+	ImVec2 ret = _virtualScale / rectV.GetSize();
+	return ret * rectW.GetSize();
 }
 
 State* GetCurrentState()
@@ -295,7 +311,7 @@ bool Begin(ImGuiID _id, const ImVec2& _size, Flags _flags)
 		return false;
 	}
 
- // resolve SetNextVirtualWindowRegion
+ // resolve SetNextVirtualWindowRegion/SetNextVirtualRegionExtents
 	State* state     = StateMap::FindOrInsert<State>(_id);
 	state->m_id      = _id;
 	ImRect& rectW    = state->m_rectW;
@@ -513,6 +529,32 @@ float ToWindowX(float _virtualPosX)
 float ToWindowY(float _virtualPosY)
 {
 	return ToWindow(ImVec2(0.0f, _virtualPosY), &VirtualWindow::g_CurrentState).y;
+}
+
+ImVec2 ToWindowScale(const ImVec2& _virtualScale)
+{
+	return ToWindowScale(_virtualScale, &VirtualWindow::g_CurrentState);
+}
+float ToWindowScaleX(float _virtualScaleX)
+{
+	return ToWindowScale(ImVec2(_virtualScaleX, 0.0f), &VirtualWindow::g_CurrentState).x;
+}
+float ToWindowScaleY(float _virtualScaleY)
+{
+	return ToWindowScale(ImVec2(0.0f, _virtualScaleY), &VirtualWindow::g_CurrentState).y;
+}
+
+ImVec2 ToVirtualScale(const ImVec2& _windowScale)
+{
+	return ToWindowScale(_windowScale, &VirtualWindow::g_CurrentState);
+}
+float ToVirtualScaleX(float _windowScaleX)
+{
+	return ToVirtualScale(ImVec2(_windowScaleX, 0.0f), &VirtualWindow::g_CurrentState).x;
+}
+float ToVirtualScaleY(float _windowScaleY)
+{
+	return ToVirtualScale(ImVec2(0.0f, _windowScaleY), &VirtualWindow::g_CurrentState).y;
 }
 
 } } // namespace ImGui::VirtualWindow
