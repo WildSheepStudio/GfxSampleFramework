@@ -4,8 +4,9 @@
 #include <frm/GlContext.h>
 #include <frm/Resource.h>
 
-#include <apt/log.h>
 #include <apt/hash.h>
+#include <apt/log.h>
+#include <apt/memory.h>
 #include <apt/File.h>
 #include <apt/FileSystem.h>
 #include <apt/Time.h>
@@ -40,7 +41,7 @@ Mesh* Mesh::Create(const char* _path)
 	Id id = GetHashId(_path);
 	Mesh* ret = Find(id);
 	if (!ret) {
-		ret = new Mesh(id, _path);
+		ret = APT_NEW(Mesh(id, _path));
 		ret->m_path.set(_path);
 	}
 	Use(ret);
@@ -55,7 +56,7 @@ Mesh* Mesh::Create(const MeshData& _data)
 	Id id = _data.getHash();
 	Mesh* ret = Find(id);
 	if (!ret) {
-		ret = new Mesh(id, "");
+		ret = APT_NEW(Mesh(id, ""));
 		ret->load(_data); // explicit load from data
 	}
 	Use(ret);
@@ -64,7 +65,7 @@ Mesh* Mesh::Create(const MeshData& _data)
 
 Mesh* Mesh::Create(const MeshDesc& _desc)
 {
-	Mesh* ret = new Mesh(GetUniqueId(), "");
+	Mesh* ret = APT_NEW(Mesh(GetUniqueId(), ""));
 	ret->load(_desc); // explicit load from desc
 	Use(ret);
 	return ret;
@@ -72,7 +73,7 @@ Mesh* Mesh::Create(const MeshDesc& _desc)
 
 void Mesh::Destroy(Mesh*& _inst_)
 {
-	delete _inst_;
+	APT_DELETE(_inst_);
 }
 
 bool Mesh::reload()
@@ -105,8 +106,7 @@ void Mesh::setVertexData(const void* _data, uint _vertexCount, GLenum _usage)
 		glAssert(glGenBuffers(1, &m_vertexBuffer));
 		glAssert(glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer));
 		
-	 // \note glVertexAttribPointer() calls are where the vao associates the vertex attributes with the currently
-	 //   bound vertex buffer, which is why we bind the vertex buffer first
+	 // glVertexAttribPointer() calls are where the vao associates the vertex attributes with the currently bound vertex buffer, which is why we bind the vertex buffer first
 		for (GLuint i = 0; i < m_desc.m_vertexAttrCount; ++i) {
 			const VertexAttr& attr = m_desc.m_vertexDesc[i];
 			glAssert(glEnableVertexAttribArray(i));
@@ -153,7 +153,7 @@ void Mesh::setIndexData(DataType _dataType, const void* _data, uint _indexCount,
 void Mesh::setBindPose(const Skeleton& _skel)
 {
 	if (!m_bindPose) {
-		m_bindPose = new Skeleton;
+		m_bindPose = APT_NEW(Skeleton);
 	}
 	*m_bindPose = _skel;
 }
@@ -194,7 +194,7 @@ void Mesh::unload()
 		m_indexBuffer = 0;
 	}
 	if (m_bindPose) {
-		delete m_bindPose;
+		APT_DELETE(m_bindPose);
 		m_bindPose = nullptr;
 	}
 	m_submeshes.clear();
@@ -216,7 +216,7 @@ void Mesh::load(const MeshData& _data)
 		setIndexData((DataType)_data.m_indexDataType, _data.m_indexData, _data.getIndexCount(), GL_STATIC_DRAW);
 	}
 	if (_data.m_bindPose) {
-		m_bindPose = new Skeleton;
+		m_bindPose = APT_NEW(Skeleton);
 		*m_bindPose = *_data.m_bindPose;
 	}
 
