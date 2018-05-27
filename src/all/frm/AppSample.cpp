@@ -142,7 +142,11 @@ bool AppSample::init(const apt::ArgList& _args)
 	cb.m_OnChar          = ImGui_OnChar;
 	m_window->setCallbacks(cb);
 
-	m_window->show();
+ // \hack TerraFormer
+	auto args = _args; // \todo apt::ArgList has a constness bug which makes this copy necessary
+	if (args.getArgCount() == 0 || strcmp(args.getArg(0).getValue().asString(), "true") == 0) {
+		m_window->show();
+	}
 
  // splash screen
 	APT_VERIFY(AppSample::update());
@@ -218,7 +222,7 @@ bool AppSample::update()
     if (keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_Escape)) {
 		return false;
 	}
-	if (keyboard->isDown(Keyboard::Key_LCtrl) && keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_P)) {
+	if (keyboard->isDown(Keyboard::Key_LCtrl) && keyboard->isDown(Keyboard::Key_Pause)) {
 		Profiler::SetPause(!Profiler::GetPause());	
 	}
 	if (keyboard->wasPressed(Keyboard::Key_F1)) {
@@ -703,12 +707,12 @@ void AppSample::ImGui_Update(AppSample* _app)
 	*/
 
  // consume keyboard/mouse input
-	if (io.WantCaptureKeyboard) {
+	/*if (io.WantCaptureKeyboard) { // \hack TerraFormer
 		Input::ResetKeyboard();
 	}
 	if (io.WantCaptureMouse) {
 		Input::ResetMouse();
-	}
+	}*/
 
 
 	io.ImeWindowHandle = _app->getWindow()->getHandle();

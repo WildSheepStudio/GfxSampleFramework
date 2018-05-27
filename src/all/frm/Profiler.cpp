@@ -957,20 +957,17 @@ static void DrawValueData(ProfilerData& _data, ProfilerData::ValueData& _valueDa
 	ImGui::PopID();
 }
 
-void Profiler::DrawUi(bool _drawAsWindow /* = true*/)
+void Profiler::DrawUi()
 {
 	APT_ONCE InitStyle();
 
-	if (_drawAsWindow)
-	{
-		ImGui::Begin("Profiler", nullptr, 0
-			| ImGuiWindowFlags_MenuBar
-		);
+//	ImGui::Begin("Profiler", nullptr, 0
+//		| ImGuiWindowFlags_MenuBar
+//		);
 
-		if (s_frameIndex <= kFrameCount) {
-			ImGui::End();
-			return;
-		}
+	if (s_frameIndex <= kFrameCount) {
+//		ImGui::End();
+		return;
 	}
 	
 	bool fit = false;
@@ -1115,10 +1112,7 @@ if (g_ViewMode == ViewMode_Markers) {
 		ImGui::TreePop();
 	}
 }
-
-if (_drawAsWindow) {
-	ImGui::End();
-}
+//	ImGui::End();
 }
 
 void Profiler::DrawPinnedValues()

@@ -135,12 +135,10 @@ struct TextureViewer
 	
 		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetFrameHeightWithSpacing()), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2), ImGuiCond_FirstUseEver);
-		
-		// \hack TerraFormer
-		//if (!ImGui::Begin("Texture Viewer", _open_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
-		//	ImGui::End();
-		//	return; // window collapsed, early-out
-		//}
+//		if (!ImGui::Begin("Texture Viewer", _open_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+//			ImGui::End();
+//			return; // window collapsed, early-out
+//		}
 	
 		ImGuiIO& io = ImGui::GetIO();
 	
@@ -329,12 +327,12 @@ struct TextureViewer
 			ImGui::TextColored(kColorTxName, tx.getName());
 			
 			ImGui::TextColored(kColorTxInfo, "Id:     %llu",     tx.getId());
+			ImGui::TextColored(kColorTxInfo, "Use #:  %lld",     tx.getRefCount());
 			ImGui::TextColored(kColorTxInfo, "Type:   %s",       GlEnumStr(tx.getTarget()));
 			ImGui::TextColored(kColorTxInfo, "Format: %s",       GlEnumStr(tx.getFormat()));
 			ImGui::TextColored(kColorTxInfo, "Size:   %dx%dx%d", tx.getWidth(), tx.getHeight(), tx.getDepth());
-			ImGui::TextColored(kColorTxInfo, "Array:  %d", tx.getArrayCount());
-			ImGui::TextColored(kColorTxInfo, "Mips:   %d", tx.getMipCount());
-			ImGui::TextColored(kColorTxInfo, "Used:   %d", tx.getRefCount());
+			ImGui::TextColored(kColorTxInfo, "Array:  %d",       tx.getArrayCount());
+			ImGui::TextColored(kColorTxInfo, "Mips:   %d",       tx.getMipCount());	
 			
 		 // filter mode
 			ImGui::Spacing(); ImGui::Spacing();
@@ -396,8 +394,7 @@ struct TextureViewer
 			ImGui::Columns(1);
 		}
 	
-		// \hack TerraFormer
-		//ImGui::End();
+//		ImGui::End();
 	}
 };
 
