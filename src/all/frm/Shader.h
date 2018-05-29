@@ -157,6 +157,10 @@ public:
 	bool   setLocalSize(int _x, int _y, int _z);
 	ivec3  getLocalSize() const { return m_desc.getLocalSize(); }
 
+	// Given the width/height/depth of an output image, generate an appropriate dispatch size as ceil(texture size/group size).
+	ivec3  getDispatchSize(int _outWidth, int _outHeight, int _outDepth = 1);
+	ivec3  getDispatchSize(const Texture* _tx, int _level);
+
 private:
 	GLuint     m_handle;
 

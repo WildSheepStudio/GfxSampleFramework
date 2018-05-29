@@ -19,8 +19,10 @@
 #include <frm/Window.h>
 #include <frm/XForm.h>
 
-#include <apt/ArgList.h>
+#include <apt/log.h>
 #include <apt/rand.h>
+#include <apt/ArgList.h>
+#include <apt/Quadtree.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_ext.h>
@@ -684,6 +686,168 @@ public:
 			ImGui::TreePop();
 		}
 #endif
+
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("Texture Readback")) {
+			static Shader*  shNoise     = nullptr;
+			static Texture* txNoise     = nullptr;
+			static vec2     uBias       = vec2(0.0f);
+			static vec2     uScale      = vec2(8.0f);
+			static float    uFrequency  = 1.0f;
+			static float    uLacunarity = 2.0f;
+			static float    uGain       = 0.5f;
+			static int      uLayers     = 7;
+	
+			static Shader*  shMinMax    = nullptr;
+			static vec2     firstRead   = vec2(-1.0f); // readback after first execute
+			static vec2     thisRead    = vec2(-1.0f);
+
+			APT_ONCE {
+				shMinMax = Shader::CreateCs("shaders/MinMax_cs.glsl",      8, 8, 1);
+				shNoise  = Shader::CreateCs("shaders/Noise/Noise_cs.glsl", 8, 8, 1, "NOISE Noise_fBm\0");
+
+				txNoise  = Texture::Create2d(512, 512, GL_RG32F, 99);
+				txNoise->setName("txNoise");
+				txNoise->setWrap(GL_REPEAT);
+			}
+
+			ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+			if (ImGui::TreeNode("Noise")) {
+				ImGui::DragFloat2("Bias",       &uBias.x,     0.25f);
+				ImGui::DragFloat2("Scale",      &uScale.x,    0.1f);
+				ImGui::DragFloat ("Frequency",  &uFrequency,  0.1f);
+				ImGui::DragFloat ("Lacunarity", &uLacunarity, 0.01f);
+				ImGui::DragFloat ("Gain",       &uGain,       0.01f);
+				ImGui::SliderInt ("Layers",     &uLayers,     1, 12);
+				ImGui::TreePop();
+			}
+			
+			{	PROFILER_MARKER_GPU("Noise");
+				ctx->setShader(shNoise);
+				ctx->setUniform("uBias",       uBias);
+				ctx->setUniform("uScale",      uScale);
+				ctx->setUniform("uFrequency",  uFrequency);
+				ctx->setUniform("uLacunarity", uLacunarity);
+				ctx->setUniform("uGain",       uGain);
+				ctx->setUniform("uLayers",     uLayers);
+				ctx->bindImage("txOut", txNoise, GL_WRITE_ONLY, 0);
+				ctx->dispatch(txNoise);
+				glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+			}
+
+			{	PROFILER_MARKER_GPU("MinMax");
+				
+				for (int i = 1; i < txNoise->getMipCount(); ++i) {
+					ctx->setShader(shMinMax);
+					ctx->setUniform("uLevel", i - 1);
+					ctx->bindTexture("txIn", txNoise);
+					ctx->bindImage("txOut", txNoise, GL_WRITE_ONLY, i);
+					auto dispatchSize = shMinMax->getDispatchSize(txNoise, i);
+					ctx->dispatch(dispatchSize.x, dispatchSize.y);
+					glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+				}
+			}
+
+			{	PROFILER_MARKER("Readback");
+
+				FRM_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
+				APT_ONCE { glAssert(glGetTextureImage(txNoise->getHandle(), txNoise->getMipCount() - 1, GL_RG, GL_FLOAT, sizeof(vec2), &firstRead.x)); }
+				glAssert(glGetTextureImage(txNoise->getHandle(), txNoise->getMipCount() - 1, GL_RG, GL_FLOAT, sizeof(vec2), &thisRead.x));
+				ImGui::Value("firstRead", firstRead);
+				ImGui::Value("thisRead ", thisRead);
+			}
+			
+
+
+			ImGui::TreePop();
+		}
+
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("Quadtree")) {
+			typedef Quadtree<uint16, uint16> Qt;
+			static Qt qt(5, 0xff);
+			static Qt::Index qtHoveredIndex = Qt::Index_Invalid;
+			static vec2 qtMousePos = vec2(0.0f);
+			ImGui::Text("qtHoveredIndex = %u", qtHoveredIndex);
+			ImGui::Text("qtMousePos = %1.2f,%1.2f", qtMousePos.x, qtMousePos.y);
+
+			Qt::Index qtNeighborIndex = Qt::Index_Invalid;
+			if (qtHoveredIndex != Qt::Index_Invalid) {
+			 // this is how to search the qt for a valid neighbor
+				qtNeighborIndex = qt.FindNeighbor(qtHoveredIndex, qt.FindLevel(qtHoveredIndex), 0, 1); // get neighbor index at the same level 
+				while (qtNeighborIndex != Qt::Index_Invalid && qt[qtNeighborIndex] == 0xff) { // search up the tree until a valid node is found
+					qtNeighborIndex = qt.getParentIndex(qtNeighborIndex, qt.FindLevel(qtNeighborIndex));
+				}
+			}
+
+			ImGui::VirtualWindow::SetNextRegion(vec2(-1.0f), vec2((float)qt.getNodeWidth(0) + 1.0f), ImGuiCond_Once);
+			ImGui::VirtualWindow::Begin(ImGui::GetID("Quadtree"), vec2(-1.0f), ImGui::VirtualWindow::Flags_Square);
+				ImGui::VirtualWindow::Grid(vec2(8.0f), vec2(1.0f), vec2(2.0f));
+				qtMousePos = ImGui::VirtualWindow::ToVirtual(ImGui::GetMousePos());
+				
+			 // draw quadtree
+				auto& drawList = *ImGui::GetWindowDrawList();
+				drawList.AddRect(ImGui::VirtualWindow::ToWindow(vec2(0, 0)), ImGui::VirtualWindow::ToWindow(vec2(qt.getNodeWidth(0))), IM_COL32_WHITE);
+				qt.traverse(
+					[&](Qt::Index _nodeIndex, int _nodeLevel)
+					{
+						auto nodeWidth     = qt.getNodeWidth(_nodeLevel);
+						vec2 nodeRectMin   = vec2(Qt::ToCartesian(_nodeIndex, _nodeLevel) * (uint32)nodeWidth);
+						vec2 nodeRectMax   = nodeRectMin + vec2(nodeWidth);
+						bool isNodeHovered = _nodeIndex == qtHoveredIndex;
+ 	
+						if (isNodeHovered) {
+							drawList.AddRectFilled(ImGui::VirtualWindow::ToWindow(nodeRectMin), ImGui::VirtualWindow::ToWindow(nodeRectMax), IM_COLOR_ALPHA(IM_COL32_MAGENTA, 0.1f)); 
+						}
+						if (_nodeIndex == qtNeighborIndex) {
+							drawList.AddRectFilled(ImGui::VirtualWindow::ToWindow(nodeRectMin), ImGui::VirtualWindow::ToWindow(nodeRectMax), IM_COLOR_ALPHA(IM_COL32_YELLOW, 0.1f)); 
+						}
+
+						auto childIndex = qt.getFirstChildIndex(_nodeIndex, _nodeLevel);
+						if (childIndex == Qt::Index_Invalid) {
+							return false;
+						}
+						if (qt[childIndex] == 0xff) {
+							if (isNodeHovered && ImGui::IsMouseClicked(0)) {
+							 // split
+								qt[childIndex + 0] = 1;
+								qt[childIndex + 1] = 1;
+								qt[childIndex + 2] = 1;
+								qt[childIndex + 3] = 1;
+							}
+							return false;
+						}
+
+						vec2 nodeCenter = nodeRectMin + (nodeRectMax - nodeRectMin) * 0.5f;
+						drawList.AddLine(ImGui::VirtualWindow::ToWindow(vec2(nodeCenter.x, nodeRectMin.y)), ImGui::VirtualWindow::ToWindow(vec2(nodeCenter.x, nodeRectMax.y)), IM_COL32_WHITE);
+						drawList.AddLine(ImGui::VirtualWindow::ToWindow(vec2(nodeRectMin.x, nodeCenter.y)), ImGui::VirtualWindow::ToWindow(vec2(nodeRectMax.x, nodeCenter.y)), IM_COL32_WHITE);
+
+						return true;
+					});
+			ImGui::VirtualWindow::End();
+
+		 // find hovered leaf node
+			qtHoveredIndex = Qt::Index_Invalid;
+			qt.traverse(
+				[&](Qt::Index _nodeIndex, int _nodeLevel)
+				{
+					auto childIndex = qt.getFirstChildIndex(_nodeIndex, _nodeLevel);
+					if (childIndex == Qt::Index_Invalid || qt[childIndex] == 0xff) { // if leaf node
+						auto nodeWidth   = qt.getNodeWidth(_nodeLevel);
+						vec2 nodeRectMin = vec2(qt.ToCartesian(_nodeIndex, _nodeLevel) * (uint32)nodeWidth);
+						vec2 nodeRectMax = nodeRectMin + vec2(nodeWidth);
+						if (ImGui::IsInside(qtMousePos, nodeRectMin, nodeRectMax)) {
+							qtHoveredIndex = _nodeIndex;
+						}
+						return false;
+					}
+					return true;
+				});
+				
+			ImGui::TreePop();
+		}
+
+
 		AppBase::draw();
 	}
 };

@@ -107,7 +107,7 @@ public:
 	static void   SetPause(bool _pause);
 	static bool   GetPause() { return s_pause; }
 
-	static void   DrawUi(bool _drawAsWindow = true);
+	static void   DrawUi();
 	static void   DrawPinnedValues();
 
 private:

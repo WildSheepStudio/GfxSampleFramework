@@ -24,8 +24,9 @@ using namespace apt;
                                  TextureView
 
 *******************************************************************************/
-TextureView::TextureView(Texture* _texture)
+TextureView::TextureView(Texture* _texture, Shader* _shader)
 	: m_texture(_texture)
+	, m_shader(_shader)
 	, m_offset(0.0f, 0.0f)
 	, m_size(0.0f, 0.0f)
 	, m_mip(0)
@@ -134,12 +135,10 @@ struct TextureViewer
 	
 		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetFrameHeightWithSpacing()), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2), ImGuiCond_FirstUseEver);
-		
-		// \hack TerraFormer
-		//if (!ImGui::Begin("Texture Viewer", _open_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
-		//	ImGui::End();
-		//	return; // window collapsed, early-out
-		//}
+//		if (!ImGui::Begin("Texture Viewer", _open_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+//			ImGui::End();
+//			return; // window collapsed, early-out
+//		}
 	
 		ImGuiIO& io = ImGui::GetIO();
 	
@@ -328,12 +327,12 @@ struct TextureViewer
 			ImGui::TextColored(kColorTxName, tx.getName());
 			
 			ImGui::TextColored(kColorTxInfo, "Id:     %llu",     tx.getId());
+			ImGui::TextColored(kColorTxInfo, "Use #:  %lld",     tx.getRefCount());
 			ImGui::TextColored(kColorTxInfo, "Type:   %s",       GlEnumStr(tx.getTarget()));
 			ImGui::TextColored(kColorTxInfo, "Format: %s",       GlEnumStr(tx.getFormat()));
 			ImGui::TextColored(kColorTxInfo, "Size:   %dx%dx%d", tx.getWidth(), tx.getHeight(), tx.getDepth());
-			ImGui::TextColored(kColorTxInfo, "Array:  %d", tx.getArrayCount());
-			ImGui::TextColored(kColorTxInfo, "Mips:   %d", tx.getMipCount());
-			ImGui::TextColored(kColorTxInfo, "Used:   %d", tx.getRefCount());
+			ImGui::TextColored(kColorTxInfo, "Array:  %d",       tx.getArrayCount());
+			ImGui::TextColored(kColorTxInfo, "Mips:   %d",       tx.getMipCount());	
 			
 		 // filter mode
 			ImGui::Spacing(); ImGui::Spacing();
@@ -395,8 +394,7 @@ struct TextureViewer
 			ImGui::Columns(1);
 		}
 	
-		// \hack TerraFormer
-		//ImGui::End();
+//		ImGui::End();
 	}
 };
 
@@ -412,26 +410,6 @@ void Texture::ShowTextureViewer(bool* _open_)
                                    Texture
 
 *******************************************************************************/
-
-struct Texture_ScopedPixelStorei
-{
-	GLenum m_pname;
-	GLint  m_param;
-
-	Texture_ScopedPixelStorei(GLenum _pname, GLint _param)
-		: m_pname(_pname)
-	{
-		glAssert(glGetIntegerv(m_pname, &m_param));
-		glAssert(glPixelStorei(m_pname, _param));
-	}
-
-	~Texture_ScopedPixelStorei()
-	{
-		glAssert(glPixelStorei(m_pname, m_param));
-	}
-};
-#define SCOPED_PIXELSTOREI(_pname, _param) Texture_ScopedPixelStorei APT_UNIQUE_NAME(_scopedPixelStorei)(_pname, _param)
-
 
 static bool GlIsTexFormatCompressed(GLenum _format)
 {
@@ -520,7 +498,7 @@ Texture* Texture::Create(Texture* _tx, bool _copyData)
 
 	Use(_tx);
 	APT_ASSERT(_tx->getState() == Texture::State_Loaded);
-	SCOPED_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
+	FRM_GL_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
 	GLenum attachment = GL_COLOR_ATTACHMENT0;
 	switch (_tx->m_format) {
 		case GL_DEPTH_COMPONENT:
@@ -720,7 +698,7 @@ Image* Texture::CreateImage(const Texture* _tx)
 	};
 
 	if (ret) {
-		SCOPED_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
+		FRM_GL_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
 
 		int arrayCount = ret->isCubemap() ? _tx->getArrayCount() * 6 : _tx->getArrayCount();
 		int mipCount = _tx->getMipCount();
@@ -761,10 +739,9 @@ void Texture::DestroyImage(Image*& _img_)
 
 GLint Texture::GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth)
 {
-	const double rlog2 = 1.0 / log(2.0);
-	const GLint log2Width  = (GLint)floor(log((double)_width)  * rlog2);
-	const GLint log2Height = (GLint)floor(log((double)_height) * rlog2);
-	const GLint log2Depth  = (GLint)floor(log((double)_depth)  * rlog2);
+	const GLint log2Width  = (GLint)floor(log2((double)_width));
+	const GLint log2Height = (GLint)floor(log2((double)_height));
+	const GLint log2Depth  = (GLint)floor(log2((double)_depth));
 	return APT_MAX(log2Width, APT_MAX(log2Height, log2Depth)) + 1; // +1 for level 0
 }
 
@@ -979,14 +956,13 @@ void Texture::generateMipmap()
 	setMinFilter(GL_LINEAR_MIPMAP_LINEAR);
 	glAssert(glActiveTexture(GL_TEXTURE0));
 	glAssert(glGenerateTextureMipmap(m_handle));
-	
 }
 
 void Texture::setMipRange(GLint _base, GLint _max)
 {
 	APT_ASSERT(m_handle);
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_BASE_LEVEL, (GLint)_base));
-	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAX_LEVEL, (GLint)_max));
+	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAX_LEVEL,  (GLint)_max));
 }
 
 void Texture::setFilter(GLenum _mode)
@@ -1026,7 +1002,7 @@ void Texture::setAnisotropy(GLfloat _anisotropy)
 	APT_ASSERT(m_handle);
 	//if (GLEW_EXT_texture_filter_anisotropic) {
 		float mx;
-		glAssert(glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &mx));
+		APT_ONCE glAssert(glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &mx));
 		glAssert(glTextureParameterf(m_handle, GL_TEXTURE_MAX_ANISOTROPY_EXT, APT_CLAMP(_anisotropy, 1.0f, mx)));
 	//}
 }
@@ -1303,7 +1279,7 @@ static void Upload3d(Texture& _tx, const Image& _img, GLint _array, GLint _mip, 
 
 bool Texture::loadImage(const Image& _img)
 {
-	SCOPED_PIXELSTOREI(GL_UNPACK_ALIGNMENT, 1);
+	FRM_GL_PIXELSTOREI(GL_UNPACK_ALIGNMENT, 1);
 
  // metadata
 	m_width      = (GLint)_img.getWidth();
@@ -1413,7 +1389,7 @@ bool Texture::loadImage(const Image& _img)
  // upload data; apt::Image stores each array layer contiguously with its mip chain, so we need to call glTexSubImage* to upload each layer/mip separately
 	glAssert(glCreateTextures(m_target, 1, &m_handle));
 	alloc(*this, _img);
-	GLint count = (GLint)(_img.isCubemap() ? _img.getArrayCount() * 6  : _img.getArrayCount());
+	GLint count = (GLint)(_img.isCubemap() ? _img.getArrayCount() * 6 : _img.getArrayCount());
 	for (GLint i = 0; i < count; ++i) {		
 		for (GLint j = 0; j < (GLint)_img.getMipmapCount(); ++j) {
 			upload(*this, _img, i, j, srcFormat, srcType);
@@ -1424,6 +1400,7 @@ bool Texture::loadImage(const Image& _img)
 	setWrap(GL_REPEAT);
 	setMagFilter(GL_LINEAR);
 	setMinFilter(_img.getMipmapCount() > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+	setMipRange(0, (GLint)_img.getMipmapCount() - 1);
 
 	return true;
 }
