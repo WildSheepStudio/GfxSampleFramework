@@ -292,7 +292,7 @@ bool Window::pollEvents()
 	m_fileDropList.clear();
 
 	MSG msg;
-	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE) && msg.message != WM_QUIT) {
+	while (PeekMessage(&msg, (HWND)m_handle, 0, 0, PM_REMOVE) && msg.message != WM_QUIT) { // if the window handle (m_handle) is not pass, the app freeze. Need to find why !
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
