@@ -193,7 +193,7 @@ struct Window::Impl
 				//APT_ASSERT(false); // should be suppressed by calling ValidateRect()
 				break;
 			case WM_CLOSE:
-				PostQuitMessage(0);
+				PostMessage((HWND)window->getHandle(), WM_QUIT, 0, 0);
 				return 0; // prevent DefWindowProc from destroying the window
 			default:
 				break;
