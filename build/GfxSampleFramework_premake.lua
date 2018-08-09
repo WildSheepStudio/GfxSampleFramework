@@ -83,8 +83,8 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
 
 		filter { "action:vs*" }
 			postbuildcommands({
-				"rmdir \"$(ProjectDir)../" .. _binDir .. "/common\"",
-				"mklink /j \"$(ProjectDir)../" .. _binDir .. "/common\" " .. "\"$(ProjectDir)../" .. _root .. "/data/common\"",
+				-- "rmdir \"$(ProjectDir)../" .. _binDir .. "/common\"",
+				-- "mklink /j \"$(ProjectDir)../" .. _binDir .. "/common\" " .. "\"$(ProjectDir)../" .. _root .. "/data/common\"",
 				})
 		filter {}
 

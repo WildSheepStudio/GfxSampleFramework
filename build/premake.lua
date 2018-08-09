@@ -54,10 +54,10 @@ workspace "GfxSampleFramework"
 		filter { "action:vs*" }
 			postbuildcommands({
 			-- make the project data dir
-				"mkdir \"$(ProjectDir)..\\..\\data\\" .. tostring(name) .. "\"",
+				-- "mkdir \"$(ProjectDir)..\\..\\data\\" .. tostring(name) .. "\"",
 	
 			-- make link to project data dir in bin
-				"rmdir \"$(ProjectDir)..\\..\\bin\\" .. tostring(name) .. "\"",
-				"mklink /j \"$(ProjectDir)..\\..\\bin\\" .. tostring(name) .. "\" " .. "\"$(ProjectDir)..\\..\\data\\" .. tostring(name) .. "\"",
+				-- "rmdir \"$(ProjectDir)..\\..\\bin\\" .. tostring(name) .. "\"",
+				-- "mklink /j \"$(ProjectDir)..\\..\\bin\\" .. tostring(name) .. "\" " .. "\"$(ProjectDir)..\\..\\data\\" .. tostring(name) .. "\"",
 				})
 
